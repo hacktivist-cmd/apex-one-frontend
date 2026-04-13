@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import AdminPortal from './pages/AdminPortal';
@@ -9,7 +10,6 @@ import Settings from './pages/Settings';
 import Portfolio from './pages/Portfolio';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import Navbar from './components/Navbar';
 
 function App() {
   return (
