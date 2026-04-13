@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Users, Wallet, History, MessageSquare, Play, Pause, RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus } from 'lucide-react';
+import { 
+  TrendingUp, Users, Wallet, History, MessageSquare, Play, Pause, 
+  RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus, Shield 
+} from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
 import api from '../api/axios';
