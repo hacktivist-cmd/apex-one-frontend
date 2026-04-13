@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import { Globe, Link, useNavigate } from 'react-router-dom';
+import { Globe, motion, AnimatePresence } from 'framer-motion';
+import { Globe, 
   TrendingUp, ArrowUpRight, ArrowDownRight, Wallet, ShieldCheck, Bell, 
   Settings, LogOut, ChevronRight, Plus, ArrowRightLeft, Activity, Search, 
   LayoutDashboard, PieChart, Clock, ExternalLink, Menu, X, Landmark,
   AlertCircle, CheckCircle
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Globe, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import useAuthStore from '../store/useAuthStore';
-import { useSocket } from '../hooks/useSocket';
-import { getProfile } from '../api/auth';
+import { Globe, useSocket } from '../hooks/useSocket';
+import { Globe, getProfile } from '../api/auth';
 import api from '../api/axios';
 import RealTimeChart from '../components/RealTimeChart';
 
