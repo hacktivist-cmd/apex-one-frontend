@@ -20,7 +20,6 @@ const PERFORMANCE_DATA = [
   { name: 'Thu', value: 45000 }, { name: 'Fri', value: 44200 }, { name: 'Sat', value: 46800 }, { name: 'Sun', value: 48500 },
 ];
 
-// Investment assets (stocks, crypto, commodities)
 const INVESTMENT_ASSETS = [
   { symbol: 'TSLA', name: 'Tesla Inc', price: 175.42, change: '+2.3%', up: true, type: 'Stock' },
   { symbol: 'USOIL', name: 'WTI Crude Oil', price: 78.50, change: '-1.2%', up: false, type: 'Commodity' },
@@ -40,14 +39,22 @@ const DEFAULT_WATCHLIST = [
   { symbol: 'TSLA', price: 175.42, change: '+2.3%', up: true },
 ];
 
-// ---------- Modals (Deposit, Withdraw, Trade, Discover) ----------
+// Deposit Modal with payment methods
 const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   const [amount, setAmount] = useState('');
-  const [cryptoType, setCryptoType] = useState('BTC');
-  const [cryptoTxId, setCryptoTxId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('contact');
+  const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const paymentDetails = {
+    contact: { instruction: 'Contact support@apexone.com to complete your deposit', address: '' },
+    cashapp: { instruction: 'Send to CashApp tag: $APEXONE', address: '$APEXONE' },
+    btc: { instruction: 'Send Bitcoin to this address:', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' },
+    eth: { instruction: 'Send Ethereum to this address:', address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' },
+    usdt: { instruction: 'Send USDT (ERC20) to this address:', address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' },
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,9 +64,13 @@ const DepositModal = ({ isOpen, onClose, onSuccess }) => {
       setError('Please enter a valid amount');
       return;
     }
+    if (paymentMethod === 'contact') {
+      setShowDetails(true);
+      return;
+    }
     setLoading(true);
     try {
-      await api.post('/deposit/request', { amount: parseFloat(amount), cryptoType, cryptoTxId });
+      await api.post('/deposit/request', { amount: parseFloat(amount), cryptoType: paymentMethod.toUpperCase(), cryptoTxId: '' });
       setSuccess('Deposit request submitted. Admin will approve shortly.');
       setTimeout(() => { onSuccess(); onClose(); }, 2000);
     } catch (err) {
@@ -75,14 +86,33 @@ const DepositModal = ({ isOpen, onClose, onSuccess }) => {
       <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
         <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Deposit Funds</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div><label className="text-xs text-gray-500 uppercase tracking-wider">Amount (USD)</label><input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]" /></div>
-          <div><label className="text-xs text-gray-500 uppercase tracking-wider">Crypto Type</label><select value={cryptoType} onChange={(e) => setCryptoType(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"><option>BTC</option><option>ETH</option><option>USDT</option></select></div>
-          <div><label className="text-xs text-gray-500 uppercase tracking-wider">Transaction ID (optional)</label><input type="text" value={cryptoTxId} onChange={(e) => setCryptoTxId(e.target.value)} placeholder="Tx hash" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" /></div>
-          {error && <div className="p-2 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-sm">{error}</div>}
-          {success && <div className="p-2 bg-green-500/10 border border-green-500/20 rounded text-green-500 text-sm">{success}</div>}
-          <button type="submit" disabled={loading} className="w-full py-3 bg-[#D4AF37] text-black font-bold rounded-xl hover:bg-yellow-500 transition disabled:opacity-50">{loading ? 'Submitting...' : 'Request Deposit'}</button>
-        </form>
+        {!showDetails ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div><label className="text-xs text-gray-500 uppercase tracking-wider">Amount (USD)</label><input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="text-xs text-gray-500 uppercase tracking-wider">Payment Method</label>
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white">
+                <option value="contact">Contact Support</option>
+                <option value="cashapp">Cash App</option>
+                <option value="btc">Bitcoin (BTC)</option>
+                <option value="eth">Ethereum (ETH)</option>
+                <option value="usdt">USDT (ERC20)</option>
+              </select>
+            </div>
+            {error && <div className="p-2 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-sm">{error}</div>}
+            <button type="submit" disabled={loading} className="w-full py-3 bg-[#D4AF37] text-black font-bold rounded-xl hover:bg-yellow-500 transition disabled:opacity-50">{loading ? 'Submitting...' : 'Proceed'}</button>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-white/5 rounded-xl">
+              <p className="text-sm text-gray-400">{paymentDetails[paymentMethod]?.instruction}</p>
+              {paymentDetails[paymentMethod]?.address && (
+                <div className="mt-2 p-2 bg-black/50 rounded-lg font-mono text-xs break-all">{paymentDetails[paymentMethod].address}</div>
+              )}
+              <p className="text-xs text-gray-500 mt-4">After sending, your deposit will be credited within 24 hours.</p>
+            </div>
+            <button onClick={() => { setShowDetails(false); onClose(); }} className="w-full py-2 bg-white/5 text-white rounded-lg">Close</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -214,7 +244,22 @@ const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   );
 };
 
-// ---------- Main Dashboard Component ----------
+// StatCard component
+const StatCard = ({ title, value, change, up = true, icon: Icon }) => (
+  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
+    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Icon className="w-12 h-12 text-[#D4AF37]" /></div>
+    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">{title}</p>
+    <div className="flex items-baseline gap-2 mb-2"><h3 className="text-2xl font-black text-white">{value}</h3><span className={`text-xs font-bold ${up ? 'text-green-500' : 'text-red-500'}`}>{change}</span></div>
+    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: '70%' }} className="bg-[#D4AF37] h-full" /></div>
+  </div>
+);
+
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) return (<div className="bg-black/90 backdrop-blur-md border border-[#D4AF37]/30 p-3 rounded-xl shadow-2xl"><p className="text-[10px] text-gray-500 uppercase font-bold mb-1">{payload[0].payload.name}</p><p className="text-[#D4AF37] font-black">${payload[0].value.toLocaleString()}</p></div>);
+  return null;
+};
+
+// Main Dashboard Component
 export default function Dashboard() {
   const { user, updateBalance, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -231,8 +276,9 @@ export default function Dashboard() {
   const [investmentPlans] = useState(INVESTMENT_ASSETS.slice(0, 6));
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [totalInvested, setTotalInvested] = useState(0);
 
-  // Fetch user profile and transactions
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -240,8 +286,9 @@ export default function Dashboard() {
         const profileRes = await getProfile();
         setBalance(profileRes.data.availableBalance);
         updateBalance(profileRes.data.availableBalance);
-        const txRes = await api.get('/withdrawals');
-        setTransactions(txRes.data);
+        // For a real app, you'd fetch total profit from backend; here we mock
+        setTotalProfit(profileRes.data.availableBalance > 0 ? profileRes.data.availableBalance * 0.2 : 0);
+        setTotalInvested(profileRes.data.availableBalance * 0.8);
       } catch (err) {
         console.error('Failed to fetch data', err);
       } finally {
@@ -281,20 +328,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex font-sans">
-      {/* Mobile overlay */}
       <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-        )}
+        {sidebarOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
       </AnimatePresence>
 
-      {/* Sidebar - responsive */}
       <aside className={`fixed top-0 left-0 h-full w-64 bg-black border-r border-white/10 z-50 transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static flex flex-col p-6 gap-8`}>
         <div className="flex items-center justify-between lg:justify-start">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div>
-            <span className="text-xl font-bold tracking-tighter text-white">APEX<span className="text-[#D4AF37]">ONE</span></span>
-          </div>
+          <div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div><span className="text-xl font-bold tracking-tighter text-white">APEX<span className="text-[#D4AF37]">ONE</span></span></div>
           <button className="lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X size={24} /></button>
         </div>
         <nav className="flex-1 flex flex-col gap-2">
@@ -303,45 +343,22 @@ export default function Dashboard() {
           <SidebarItem icon={PieChart} label="Portfolio" to="/portfolio" />
           <SidebarItem icon={Settings} label="Settings" to="/settings" />
         </nav>
-        <div className="pt-6 border-t border-white/5">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors text-sm w-full">
-            <LogOut className="w-4 h-4" /> Sign Out
-          </button>
-        </div>
+        <div className="pt-6 border-t border-white/5"><button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors text-sm w-full"><LogOut className="w-4 h-4" /> Sign Out</button></div>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 lg:p-12">
-        {/* Mobile header with hamburger */}
+        {/* Mobile header */}
         <header className="flex items-center justify-between mb-6 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg bg-white/5">
-            <Menu size={24} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div>
-            <span className="text-xl font-bold tracking-tighter">APEX<span className="text-[#D4AF37]">ONE</span></span>
-          </div>
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg bg-white/5"><Menu size={24} /></button>
+          <div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div><span className="text-xl font-bold tracking-tighter">APEX<span className="text-[#D4AF37]">ONE</span></span></div>
           <button className="p-2 bg-white/5 rounded-full"><Bell size={20} className="text-gray-400" /></button>
         </header>
 
-        {/* Desktop header (unchanged) */}
         <div className="hidden lg:flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-3xl font-black mb-1">Welcome back, {user?.fullName || 'Investor'}</h1>
-            <div className="flex items-center gap-4 text-xs text-gray-500 uppercase tracking-widest font-bold">
-              <span className="flex items-center gap-1.5 text-green-500"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> System Status: Encrypted</span>
-              <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Identity Verified</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type="text" placeholder="Search watchlist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-[#D4AF37] transition-all w-64" />
-            </div>
-            <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 relative"><Bell className="w-5 h-5 text-gray-400" /><div className="absolute top-2 right-2 w-2 h-2 bg-[#D4AF37] rounded-full" /></button>
-          </div>
+          <div><h1 className="text-3xl font-black mb-1">Welcome back, {user?.fullName || 'Investor'}</h1><div className="flex items-center gap-4 text-xs text-gray-500 uppercase tracking-widest font-bold"><span className="flex items-center gap-1.5 text-green-500"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> System Status: Encrypted</span><span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Identity Verified</span></div></div>
+          <div className="flex items-center gap-3"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" /><input type="text" placeholder="Search watchlist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-[#D4AF37] transition-all w-64" /></div><button className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 relative"><Bell className="w-5 h-5 text-gray-400" /><div className="absolute top-2 right-2 w-2 h-2 bg-[#D4AF37] rounded-full" /></button></div>
         </div>
 
-        {/* Balance cards, chart, watchlist, investment plans (same as before but using real balance) */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8"><div className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1 rounded-full"><div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" /><span className="text-[10px] text-[#D4AF37] font-black uppercase tracking-tighter">Pulse Active</span></div></div>
@@ -349,7 +366,7 @@ export default function Dashboard() {
             <div className="flex items-baseline gap-4 mb-8"><h2 className="text-5xl md:text-6xl font-black tracking-tight text-white">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2><div className="flex items-center text-green-500 font-bold bg-green-500/10 px-2 py-0.5 rounded-lg text-sm"><ArrowUpRight className="w-4 h-4" /> 14.2%</div></div>
             <div className="flex gap-4"><button onClick={() => setDepositModal(true)} className="flex-1 py-4 bg-[#D4AF37] text-black font-black rounded-2xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus className="w-5 h-5" /> Deposit</button><button onClick={() => setWithdrawModal(true)} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><ArrowRightLeft className="w-5 h-5" /> Withdraw</button></div>
           </div>
-          <div className="grid grid-cols-1 gap-4"><StatCard title="Total Profit" value="+$8,241.00" change="+21.4%" icon={TrendingUp} /><StatCard title="Locked Margin" value="$12,000.00" change="Standard" icon={Wallet} up={true} /></div>
+          <div className="grid grid-cols-1 gap-4"><StatCard title="Total Profit" value={`+$${totalProfit.toFixed(2)}`} change="+21.4%" icon={TrendingUp} /><StatCard title="Total Invested" value={`$${totalInvested.toFixed(2)}`} change="Standard" icon={Wallet} up={true} /></div>
         </section>
 
         <div className="glass-card p-6 mb-8"><h3 className="text-xl font-bold mb-4">Live Market Chart (BTC/USDT)</h3><RealTimeChart symbol="BTCUSDT" height={300} /></div>
@@ -373,18 +390,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-// Helper components
-const StatCard = ({ title, value, change, up = true, icon: Icon }) => (
-  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
-    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Icon className="w-12 h-12 text-[#D4AF37]" /></div>
-    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">{title}</p>
-    <div className="flex items-baseline gap-2 mb-2"><h3 className="text-2xl font-black text-white">{value}</h3><span className={`text-xs font-bold ${up ? 'text-green-500' : 'text-red-500'}`}>{change}</span></div>
-    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: '70%' }} className="bg-[#D4AF37] h-full" /></div>
-  </div>
-);
-
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) return (<div className="bg-black/90 backdrop-blur-md border border-[#D4AF37]/30 p-3 rounded-xl shadow-2xl"><p className="text-[10px] text-gray-500 uppercase font-bold mb-1">{payload[0].payload.name}</p><p className="text-[#D4AF37] font-black">${payload[0].value.toLocaleString()}</p></div>);
-  return null;
-};
