@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   TrendingUp, Users, Wallet, History, MessageSquare, Play, Pause, 
   RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus, Shield,
-  CheckCircle, XCircle, Clock
+  CheckCircle, XCircle, Clock, Menu, X
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
@@ -29,6 +29,7 @@ export default function AdminPortal() {
   const [simRate, setSimRate] = useState(0.05);
   const [simActive, setSimActive] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
@@ -65,7 +66,7 @@ export default function AdminPortal() {
   const handleTransactionAction = async (id, status) => {
     await api.patch(`/admin/transactions/${id}`, { status });
     fetchTransactions();
-    fetchUsers(); // to reflect balance changes
+    fetchUsers();
   };
 
   const startSimulation = async () => {
@@ -83,6 +84,7 @@ export default function AdminPortal() {
   };
 
   const pendingCount = transactions.filter(t => t.status === 'PENDING').length;
+  const tabs = ['users', 'requests', 'simulate', 'create'];
 
   return (
     <div className="min-h-screen bg-black p-6">
@@ -102,12 +104,28 @@ export default function AdminPortal() {
           <StatCard title="Pending Requests" value={pendingCount} icon={Clock} />
         </div>
 
-        <div className="flex gap-2 border-b border-white/10 mb-6 overflow-x-auto">
-          {['users', 'requests', 'simulate', 'create'].map(tab => (
+        {/* Mobile hamburger menu */}
+        <div className="lg:hidden mb-4">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg bg-white/5">
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          {mobileMenuOpen && (
+            <div className="mt-2 flex flex-col gap-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-4">
+              {tabs.map(tab => (
+                <button key={tab} onClick={() => { setActiveTab(tab); setMobileMenuOpen(false); }} className={`px-4 py-2 rounded-lg text-left ${activeTab === tab ? 'bg-gold text-black' : 'text-gray-400'}`}>{tab.toUpperCase()}</button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop tabs */}
+        <div className="hidden lg:flex gap-2 border-b border-white/10 mb-6">
+          {tabs.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-t-xl font-medium transition ${activeTab === tab ? 'bg-gold text-black' : 'text-gray-400 hover:text-white'}`}>{tab.toUpperCase()}</button>
           ))}
         </div>
 
+        {/* Content panels (same as before) */}
         {activeTab === 'users' && (
           <div className="glass-card p-6 overflow-auto">
             <table className="w-full text-sm">

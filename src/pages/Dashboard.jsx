@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, ArrowUpRight, ArrowDownRight, Wallet, ShieldCheck, Bell, 
   Settings, LogOut, ChevronRight, Plus, ArrowRightLeft, Activity, Search, 
-  LayoutDashboard, PieChart, Clock, ExternalLink, Globe, X, Landmark,
+  LayoutDashboard, PieChart, Clock, ExternalLink, Menu, X, Landmark,
   AlertCircle, CheckCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -14,7 +14,7 @@ import { getProfile } from '../api/auth';
 import api from '../api/axios';
 import RealTimeChart from '../components/RealTimeChart';
 
-// Performance chart mock data
+// Performance chart data (will be replaced with real historical data later)
 const PERFORMANCE_DATA = [
   { name: 'Mon', value: 42000 }, { name: 'Tue', value: 43500 }, { name: 'Wed', value: 42800 },
   { name: 'Thu', value: 45000 }, { name: 'Fri', value: 44200 }, { name: 'Sat', value: 46800 }, { name: 'Sun', value: 48500 },
@@ -40,44 +40,8 @@ const DEFAULT_WATCHLIST = [
   { symbol: 'TSLA', price: 175.42, change: '+2.3%', up: true },
 ];
 
-const SidebarItem = ({ icon: Icon, label, to, active = false }) => (
-  <Link to={to} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-    active ? 'bg-[#D4AF37] text-black font-bold shadow-[0_4px_20px_rgba(212,175,55,0.2)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'
-  }`}>
-    <Icon className="w-5 h-5" />
-    <span className="text-sm">{label}</span>
-  </Link>
-);
-
-const StatCard = ({ title, value, change, up = true, icon: Icon }) => (
-  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
-    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-      <Icon className="w-12 h-12 text-[#D4AF37]" />
-    </div>
-    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">{title}</p>
-    <div className="flex items-baseline gap-2 mb-2">
-      <h3 className="text-2xl font-black text-white">{value}</h3>
-      <span className={`text-xs font-bold ${up ? 'text-green-500' : 'text-red-500'}`}>{change}</span>
-    </div>
-    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-      <motion.div initial={{ width: 0 }} animate={{ width: '70%' }} className="bg-[#D4AF37] h-full" />
-    </div>
-  </div>
-);
-
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-black/90 backdrop-blur-md border border-[#D4AF37]/30 p-3 rounded-xl shadow-2xl">
-        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">{payload[0].payload.name}</p>
-        <p className="text-[#D4AF37] font-black">${payload[0].value.toLocaleString()}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Deposit Modal
+// ---------- Modals (Deposit, Withdraw, Trade, Discover) ----------
+// (These are the same as before, but I'll include them for completeness)
 const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   const [amount, setAmount] = useState('');
   const [cryptoType, setCryptoType] = useState('BTC');
@@ -125,7 +89,6 @@ const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-// Withdrawal Modal
 const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => {
   const [amount, setAmount] = useState('');
   const [destinationAddr, setDestinationAddr] = useState('');
@@ -170,7 +133,6 @@ const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => {
   );
 };
 
-// Trade Modal with Stop Loss / Take Profit
 const TradeModal = ({ asset, onClose, onSuccess, userBalance }) => {
   const [side, setSide] = useState('buy');
   const [amount, setAmount] = useState('');
@@ -186,7 +148,6 @@ const TradeModal = ({ asset, onClose, onSuccess, userBalance }) => {
     if (side === 'buy' && totalCost > userBalance) return setError('Insufficient balance');
     setLoading(true);
     try {
-      // Call backend trade route
       await api.post('/trade', {
         symbol: asset.symbol,
         side,
@@ -194,7 +155,6 @@ const TradeModal = ({ asset, onClose, onSuccess, userBalance }) => {
         stopLossPercent: stopLoss ? parseFloat(stopLoss) : null,
         takeProfitPercent: takeProfit ? parseFloat(takeProfit) : null,
       });
-      // Update local balance (the backend will deduct the cost)
       const newBalance = side === 'buy' ? userBalance - totalCost : userBalance + totalCost;
       const userId = JSON.parse(localStorage.getItem('auth-storage'))?.state?.user?.id;
       await api.patch(`/admin/users/${userId}/balance`, { availableBalance: newBalance });
@@ -232,10 +192,10 @@ const TradeModal = ({ asset, onClose, onSuccess, userBalance }) => {
   );
 };
 
-// Discover Assets Modal
 const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   const [search, setSearch] = useState('');
   const filteredAssets = INVESTMENT_ASSETS.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.symbol.toLowerCase().includes(search.toLowerCase()));
+  if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-2xl p-6 relative max-h-[80vh] overflow-y-auto">
@@ -255,10 +215,14 @@ const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   );
 };
 
+// ---------- Main Dashboard Component ----------
 export default function Dashboard() {
   const { user, updateBalance, logout } = useAuthStore();
+  const navigate = useNavigate();
   useSocket();
-  const [balance, setBalance] = useState(user?.availableBalance || 48500);
+  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [balance, setBalance] = useState(user?.availableBalance || 0);
   const [watchlist, setWatchlist] = useState(DEFAULT_WATCHLIST);
   const [searchTerm, setSearchTerm] = useState('');
   const [depositModal, setDepositModal] = useState(false);
@@ -266,12 +230,26 @@ export default function Dashboard() {
   const [discoverModal, setDiscoverModal] = useState(false);
   const [tradeAsset, setTradeAsset] = useState(null);
   const [investmentPlans] = useState(INVESTMENT_ASSETS.slice(0, 6));
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch user profile and transactions
   useEffect(() => {
-    getProfile().then(res => {
-      setBalance(res.data.availableBalance);
-      updateBalance(res.data.availableBalance);
-    });
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const profileRes = await getProfile();
+        setBalance(profileRes.data.availableBalance);
+        updateBalance(profileRes.data.availableBalance);
+        const txRes = await api.get('/withdrawals');
+        setTransactions(txRes.data);
+      } catch (err) {
+        console.error('Failed to fetch data', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const filteredWatchlist = watchlist.filter(item => 
@@ -291,15 +269,34 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    navigate('/');
   };
+
+  const SidebarItem = ({ icon: Icon, label, to, active = false }) => (
+    <Link to={to} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${active ? 'bg-[#D4AF37] text-black font-bold shadow-[0_4px_20px_rgba(212,175,55,0.2)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+      <Icon className="w-5 h-5" /><span className="text-sm">{label}</span>
+    </Link>
+  );
+
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex font-sans">
-      <aside className="w-64 border-r border-white/5 p-6 hidden lg:flex flex-col gap-8 fixed inset-y-0">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div>
-          <span className="text-xl font-bold tracking-tighter text-white">APEX<span className="text-[#D4AF37]">ONE</span></span>
+      {/* Mobile overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar - responsive */}
+      <aside className={`fixed top-0 left-0 h-full w-64 bg-black border-r border-white/10 z-50 transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static flex flex-col p-6 gap-8`}>
+        <div className="flex items-center justify-between lg:justify-start">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div>
+            <span className="text-xl font-bold tracking-tighter text-white">APEX<span className="text-[#D4AF37]">ONE</span></span>
+          </div>
+          <button className="lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X size={24} /></button>
         </div>
         <nav className="flex-1 flex flex-col gap-2">
           <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/dashboard" active />
@@ -314,8 +311,21 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 lg:ml-64 p-4 md:p-8 lg:p-12">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+      <main className="flex-1 p-4 md:p-8 lg:p-12">
+        {/* Mobile header with hamburger */}
+        <header className="flex items-center justify-between mb-6 lg:hidden">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg bg-white/5">
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center"><TrendingUp className="text-black w-5 h-5" /></div>
+            <span className="text-xl font-bold tracking-tighter">APEX<span className="text-[#D4AF37]">ONE</span></span>
+          </div>
+          <button className="p-2 bg-white/5 rounded-full"><Bell size={20} className="text-gray-400" /></button>
+        </header>
+
+        {/* Desktop header (unchanged) */}
+        <div className="hidden lg:flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-3xl font-black mb-1">Welcome back, {user?.fullName || 'Investor'}</h1>
             <div className="flex items-center gap-4 text-xs text-gray-500 uppercase tracking-widest font-bold">
@@ -330,72 +340,29 @@ export default function Dashboard() {
             </div>
             <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 relative"><Bell className="w-5 h-5 text-gray-400" /><div className="absolute top-2 right-2 w-2 h-2 bg-[#D4AF37] rounded-full" /></button>
           </div>
-        </header>
+        </div>
 
+        {/* Balance cards, chart, watchlist, investment plans (same as before but using real balance) */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8">
-              <div className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" /><span className="text-[10px] text-[#D4AF37] font-black uppercase tracking-tighter">Pulse Active</span>
-              </div>
-            </div>
+            <div className="absolute top-0 right-0 p-8"><div className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1 rounded-full"><div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" /><span className="text-[10px] text-[#D4AF37] font-black uppercase tracking-tighter">Pulse Active</span></div></div>
             <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mb-4">Total Net Equity</p>
-            <div className="flex items-baseline gap-4 mb-8">
-              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-white">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2>
-              <div className="flex items-center text-green-500 font-bold bg-green-500/10 px-2 py-0.5 rounded-lg text-sm"><ArrowUpRight className="w-4 h-4" /> 14.2%</div>
-            </div>
-            <div className="flex gap-4">
-              <button onClick={() => setDepositModal(true)} className="flex-1 py-4 bg-[#D4AF37] text-black font-black rounded-2xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus className="w-5 h-5" /> Deposit</button>
-              <button onClick={() => setWithdrawModal(true)} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><ArrowRightLeft className="w-5 h-5" /> Withdraw</button>
-            </div>
+            <div className="flex items-baseline gap-4 mb-8"><h2 className="text-5xl md:text-6xl font-black tracking-tight text-white">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2><div className="flex items-center text-green-500 font-bold bg-green-500/10 px-2 py-0.5 rounded-lg text-sm"><ArrowUpRight className="w-4 h-4" /> 14.2%</div></div>
+            <div className="flex gap-4"><button onClick={() => setDepositModal(true)} className="flex-1 py-4 bg-[#D4AF37] text-black font-black rounded-2xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus className="w-5 h-5" /> Deposit</button><button onClick={() => setWithdrawModal(true)} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><ArrowRightLeft className="w-5 h-5" /> Withdraw</button></div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <StatCard title="Total Profit" value="+$8,241.00" change="+21.4%" icon={TrendingUp} />
-            <StatCard title="Locked Margin" value="$12,000.00" change="Standard" icon={Wallet} up={true} />
-          </div>
+          <div className="grid grid-cols-1 gap-4"><StatCard title="Total Profit" value="+$8,241.00" change="+21.4%" icon={TrendingUp} /><StatCard title="Locked Margin" value="$12,000.00" change="Standard" icon={Wallet} up={true} /></div>
         </section>
 
-        {/* Real‑time Chart from TradingView-like component */}
-        <div className="glass-card p-6 mb-8">
-          <h3 className="text-xl font-bold mb-4">Live Market Chart (BTC/USDT)</h3>
-          <RealTimeChart symbol="BTCUSDT" height={300} />
-        </div>
+        <div className="glass-card p-6 mb-8"><h3 className="text-xl font-bold mb-4">Live Market Chart (BTC/USDT)</h3><RealTimeChart symbol="BTCUSDT" height={300} /></div>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-6">
-            <div className="flex items-center justify-between mb-8"><div><h4 className="font-bold text-lg">Performance Chart</h4><p className="text-xs text-gray-500">Live account equity history</p></div><div className="flex gap-2">{['1D', '1W', '1M', '1Y'].map(t => <button key={t} className={`px-3 py-1 rounded-lg text-[10px] font-bold ${t === '1W' ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-gray-500 hover:text-white'}`}>{t}</button>)}</div></div>
-            <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={PERFORMANCE_DATA}><defs><linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/><stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 10}} dy={10} /><YAxis hide /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="value" stroke="#D4AF37" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" animationDuration={2000} /></AreaChart></ResponsiveContainer></div>
-          </div>
-          <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6">
-            <div className="flex items-center justify-between mb-6"><h4 className="font-bold">Watchlist</h4><button onClick={() => setDiscoverModal(true)} className="text-xs text-[#D4AF37] font-bold flex items-center gap-1">Edit <ChevronRight className="w-3 h-3" /></button></div>
-            <div className="space-y-4">
-              {filteredWatchlist.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-transparent hover:border-white/10 transition-all group">
-                  <div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{item.up ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}</div><div><p className="text-sm font-bold">{item.symbol}</p><p className="text-[10px] text-gray-500 uppercase tracking-tighter">Live Feed</p></div></div>
-                  <div className="text-right"><p className="text-sm font-black text-white">${typeof item.price === 'number' ? item.price.toLocaleString() : item.price}</p><p className={`text-[10px] font-bold ${item.up ? 'text-green-500' : 'text-red-500'}`}>{item.change}</p></div>
-                </div>
-              ))}
-            </div>
-            <button onClick={() => setDiscoverModal(true)} className="w-full mt-6 py-3 border border-white/5 rounded-xl text-xs text-gray-500 font-bold hover:bg-white/5 transition-all">Discover More Assets</button>
-          </div>
+          <div className="lg:col-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-6"><div className="flex items-center justify-between mb-8"><div><h4 className="font-bold text-lg">Performance Chart</h4><p className="text-xs text-gray-500">Live account equity history</p></div><div className="flex gap-2">{['1D', '1W', '1M', '1Y'].map(t => <button key={t} className={`px-3 py-1 rounded-lg text-[10px] font-bold ${t === '1W' ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-gray-500 hover:text-white'}`}>{t}</button>)}</div></div><div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={PERFORMANCE_DATA}><defs><linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/><stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 10}} dy={10} /><YAxis hide /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="value" stroke="#D4AF37" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" animationDuration={2000} /></AreaChart></ResponsiveContainer></div></div>
+          <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6"><div className="flex items-center justify-between mb-6"><h4 className="font-bold">Watchlist</h4><button onClick={() => setDiscoverModal(true)} className="text-xs text-[#D4AF37] font-bold flex items-center gap-1">Edit <ChevronRight className="w-3 h-3" /></button></div><div className="space-y-4">{filteredWatchlist.map((item, i) => (<div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-transparent hover:border-white/10 transition-all group"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{item.up ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}</div><div><p className="text-sm font-bold">{item.symbol}</p><p className="text-[10px] text-gray-500 uppercase tracking-tighter">Live Feed</p></div></div><div className="text-right"><p className="text-sm font-black text-white">${typeof item.price === 'number' ? item.price.toLocaleString() : item.price}</p><p className={`text-[10px] font-bold ${item.up ? 'text-green-500' : 'text-red-500'}`}>{item.change}</p></div></div>))}</div><button onClick={() => setDiscoverModal(true)} className="w-full mt-6 py-3 border border-white/5 rounded-xl text-xs text-gray-500 font-bold hover:bg-white/5 transition-all">Discover More Assets</button></div>
         </section>
 
-        <section className="mb-8">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Landmark className="text-[#D4AF37]" size={20} /> Investment Plans</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {investmentPlans.map(asset => (
-              <div key={asset.symbol} className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-4 hover:border-[#D4AF37]/30 transition-all">
-                <div className="flex justify-between items-start mb-2"><div><p className="font-bold">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol}</p></div><span className={`text-xs font-bold px-2 py-0.5 rounded ${asset.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{asset.change}</span></div>
-                <div className="flex justify-between items-end mt-4"><p className="text-xl font-bold text-white">${asset.price.toLocaleString()}</p><button onClick={() => setTradeAsset(asset)} className="px-4 py-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37] text-[#D4AF37] hover:text-black rounded-lg text-xs font-bold transition-all">Trade</button></div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <section className="mb-8"><h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Landmark className="text-[#D4AF37]" size={20} /> Investment Plans</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{investmentPlans.map(asset => (<div key={asset.symbol} className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-4 hover:border-[#D4AF37]/30 transition-all"><div className="flex justify-between items-start mb-2"><div><p className="font-bold">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol}</p></div><span className={`text-xs font-bold px-2 py-0.5 rounded ${asset.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{asset.change}</span></div><div className="flex justify-between items-end mt-4"><p className="text-xl font-bold text-white">${asset.price.toLocaleString()}</p><button onClick={() => setTradeAsset(asset)} className="px-4 py-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37] text-[#D4AF37] hover:text-black rounded-lg text-xs font-bold transition-all">Trade</button></div></div>))}</div></section>
 
-        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/5 gap-4">
-          <div className="flex items-center gap-6 text-[10px] text-gray-600 font-bold uppercase tracking-widest"><span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> Last sync: just now</span><span className="flex items-center gap-1.5 text-[#D4AF37]"><ExternalLink className="w-3 h-3" /> View Blockchain Tx</span></div>
-          <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Liquidity Provider: APEX Global LP</p>
-        </div>
+        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/5 gap-4"><div className="flex items-center gap-6 text-[10px] text-gray-600 font-bold uppercase tracking-widest"><span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> Last sync: just now</span><span className="flex items-center gap-1.5 text-[#D4AF37]"><ExternalLink className="w-3 h-3" /> View Blockchain Tx</span></div><p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Liquidity Provider: APEX Global LP</p></div>
       </main>
 
       <AnimatePresence>
