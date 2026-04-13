@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Link, useNavigate } from 'react-router-dom';
-import { Globe, motion, AnimatePresence } from 'framer-motion';
-import { Globe, 
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
   TrendingUp, ArrowUpRight, ArrowDownRight, Wallet, ShieldCheck, Bell, 
   Settings, LogOut, ChevronRight, Plus, ArrowRightLeft, Activity, Search, 
   LayoutDashboard, PieChart, Clock, ExternalLink, Menu, X, Landmark,
-  AlertCircle, CheckCircle
+  AlertCircle, CheckCircle, Globe
 } from 'lucide-react';
-import { Globe, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import useAuthStore from '../store/useAuthStore';
-import { Globe, useSocket } from '../hooks/useSocket';
-import { Globe, getProfile } from '../api/auth';
+import { useSocket } from '../hooks/useSocket';
+import { getProfile } from '../api/auth';
 import api from '../api/axios';
 import RealTimeChart from '../components/RealTimeChart';
 
@@ -41,7 +41,6 @@ const DEFAULT_WATCHLIST = [
 ];
 
 // ---------- Modals (Deposit, Withdraw, Trade, Discover) ----------
-// (These are the same as before, but I'll include them for completeness)
 const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   const [amount, setAmount] = useState('');
   const [cryptoType, setCryptoType] = useState('BTC');
@@ -374,3 +373,18 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// Helper components
+const StatCard = ({ title, value, change, up = true, icon: Icon }) => (
+  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-2xl relative overflow-hidden group">
+    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Icon className="w-12 h-12 text-[#D4AF37]" /></div>
+    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">{title}</p>
+    <div className="flex items-baseline gap-2 mb-2"><h3 className="text-2xl font-black text-white">{value}</h3><span className={`text-xs font-bold ${up ? 'text-green-500' : 'text-red-500'}`}>{change}</span></div>
+    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: '70%' }} className="bg-[#D4AF37] h-full" /></div>
+  </div>
+);
+
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) return (<div className="bg-black/90 backdrop-blur-md border border-[#D4AF37]/30 p-3 rounded-xl shadow-2xl"><p className="text-[10px] text-gray-500 uppercase font-bold mb-1">{payload[0].payload.name}</p><p className="text-[#D4AF37] font-black">${payload[0].value.toLocaleString()}</p></div>);
+  return null;
+};
