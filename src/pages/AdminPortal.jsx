@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   TrendingUp, Users, Wallet, History, MessageSquare, Play, Pause, 
-  RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus, Shield 
+  RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus, Shield,
+  CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
@@ -20,6 +21,7 @@ export default function AdminPortal() {
   const { user } = useAuthStore();
   const setView = useUIStore(state => state.setView);
   const [users, setUsers] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [editingBalance, setEditingBalance] = useState(null);
   const [newBalance, setNewBalance] = useState('');
@@ -32,8 +34,12 @@ export default function AdminPortal() {
     const res = await api.get('/admin/users');
     setUsers(res.data);
   };
+  const fetchTransactions = async () => {
+    const res = await api.get('/admin/transactions');
+    setTransactions(res.data);
+  };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchUsers(); fetchTransactions(); }, []);
 
   const handleUpdateBalance = async (userId) => {
     await api.patch(`/admin/users/${userId}/balance`, { availableBalance: parseFloat(newBalance) });
@@ -56,6 +62,12 @@ export default function AdminPortal() {
     setCreateUserForm({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
   };
 
+  const handleTransactionAction = async (id, status) => {
+    await api.patch(`/admin/transactions/${id}`, { status });
+    fetchTransactions();
+    fetchUsers(); // to reflect balance changes
+  };
+
   const startSimulation = async () => {
     if (!simUser) return alert('Select a user');
     await api.post('/admin/simulation/start', { userId: simUser, growthRate: simRate });
@@ -70,6 +82,8 @@ export default function AdminPortal() {
     alert('Simulation stopped');
   };
 
+  const pendingCount = transactions.filter(t => t.status === 'PENDING').length;
+
   return (
     <div className="min-h-screen bg-black p-6">
       <div className="max-w-7xl mx-auto">
@@ -81,14 +95,15 @@ export default function AdminPortal() {
           <div className="text-right"><div className="text-xs text-gray-500">System Status</div><div className="text-green-400 font-mono text-sm">● OPERATIONAL</div></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <StatCard title="Total Users" value={users.length} icon={Users} />
           <StatCard title="Total AUM" value={`$${users.reduce((s, u) => s + u.availableBalance, 0).toLocaleString()}`} icon={BarChart3} />
           <StatCard title="Admins" value={users.filter(u => u.role === 'ADMIN').length} icon={Shield} />
+          <StatCard title="Pending Requests" value={pendingCount} icon={Clock} />
         </div>
 
-        <div className="flex gap-2 border-b border-white/10 mb-6">
-          {['users', 'simulate', 'create'].map(tab => (
+        <div className="flex gap-2 border-b border-white/10 mb-6 overflow-x-auto">
+          {['users', 'requests', 'simulate', 'create'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-t-xl font-medium transition ${activeTab === tab ? 'bg-gold text-black' : 'text-gray-400 hover:text-white'}`}>{tab.toUpperCase()}</button>
           ))}
         </div>
@@ -111,6 +126,33 @@ export default function AdminPortal() {
                     </td>
                     <td>{u.role}</td>
                     <td className="py-2"><button onClick={() => handleDeleteUser(u._id)} className="text-red-500 hover:bg-red-500/10 p-1 rounded"><Trash2 size={16} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'requests' && (
+          <div className="glass-card p-6 overflow-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-white/10"><th>User</th><th>Type</th><th>Amount</th><th>Crypto</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {transactions.map(tx => (
+                  <tr key={tx._id} className="border-b border-white/5">
+                    <td className="py-2">{tx.userId?.fullName || tx.userId}</td>
+                    <td className="py-2">{tx.type}</td>
+                    <td className="py-2">${tx.amount}</td>
+                    <td className="py-2">{tx.cryptoType || '-'}</td>
+                    <td className="py-2"><span className={`px-2 py-0.5 rounded-full text-xs ${tx.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' : tx.status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{tx.status}</span></td>
+                    <td className="py-2">
+                      {tx.status === 'PENDING' && (
+                        <div className="flex gap-2">
+                          <button onClick={() => handleTransactionAction(tx._id, 'APPROVED')} className="bg-green-600 px-2 py-1 rounded text-xs">Approve</button>
+                          <button onClick={() => handleTransactionAction(tx._id, 'REJECTED')} className="bg-red-600 px-2 py-1 rounded text-xs">Reject</button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
