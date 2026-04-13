@@ -7,15 +7,24 @@ import {
 import AuthModal from '../components/AuthModal';
 import useUIStore from '../store/useUIStore';
 
-// Hero Section (no navbar inside)
+// Hero Section with full‑screen background image
 const Hero = () => {
   const setAuthModalOpen = useUIStore(state => state.setAuthModalOpen);
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-32 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/20 via-black to-black"></div>
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=2000" 
+          alt="Trading background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90" />
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-[#D4AF37] uppercase bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full">
+          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-[#D4AF37] uppercase bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full backdrop-blur-sm">
             The Future of Wealth Management
           </span>
           <h1 className="text-5xl md:text-8xl font-black text-white mb-6 leading-tight">
@@ -24,21 +33,16 @@ const Hero = () => {
               Wealth Rise
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed drop-shadow-lg">
             Experience institutional-grade crypto investment tools. Deposit, track, and scale your portfolio with APEX ONE.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => setAuthModalOpen(true)} className="px-8 py-4 bg-[#D4AF37] text-black font-black rounded-xl text-lg flex items-center gap-2 hover:scale-105 transition-transform shadow-lg">
               Open Account <ArrowRight className="w-5 h-5" />
             </button>
-            <button className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-lg hover:bg-white/10 transition-colors">
+            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold rounded-xl text-lg hover:bg-white/20 transition-colors">
               View Markets
             </button>
-          </div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="mt-20">
-          <div className="relative mx-auto max-w-5xl rounded-3xl border border-white/10 bg-gradient-to-b from-white/5 to-transparent p-2 backdrop-blur-3xl shadow-2xl">
-            <img src="https://picsum.photos/1200/600?random=1" alt="Dashboard Preview" className="rounded-2xl" />
           </div>
         </motion.div>
       </div>
@@ -46,7 +50,7 @@ const Hero = () => {
   );
 };
 
-// TradingView Ticker
+// TradingView Ticker (unchanged)
 const TradingViewTicker = () => {
   useEffect(() => {
     const script = document.createElement('script');
@@ -71,7 +75,7 @@ const TradingViewTicker = () => {
   return <div id="tv-ticker" className="w-full overflow-hidden bg-black/40 backdrop-blur-sm border-y border-white/5 py-1"></div>;
 };
 
-// Features Section
+// Features Section (unchanged)
 const Features = () => {
   const features = [
     { icon: ShieldCheck, title: "Secure Custody", desc: "Multi-sig cold storage for all digital assets." },
@@ -97,7 +101,7 @@ const Features = () => {
   );
 };
 
-// Client Reviews Section
+// Client Reviews Section (unchanged)
 const Reviews = ({ reviews }) => {
   if (!reviews || reviews.length === 0) return null;
   return (
@@ -120,7 +124,7 @@ const Reviews = ({ reviews }) => {
   );
 };
 
-// Footer
+// Footer (unchanged)
 const Footer = () => (
   <footer className="bg-black border-t border-white/5 pt-20 pb-10">
     <div className="max-w-7xl mx-auto px-4">

@@ -9,6 +9,7 @@ import Contact from './pages/Contact';
 import Settings from './pages/Settings';
 import Portfolio from './pages/Portfolio';
 import Profile from './pages/Profile';
+import Kyc from './pages/Kyc';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
         </Routes>
       </div>
     </BrowserRouter>

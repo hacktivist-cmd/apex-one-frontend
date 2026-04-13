@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   TrendingUp, Users, Wallet, History, MessageSquare, Play, Pause, 
   RefreshCw, ChevronRight, BarChart3, Edit2, Trash2, UserPlus, Shield,
-  CheckCircle, XCircle, Clock, Menu, X
+  CheckCircle, XCircle, Clock, Mail, Eye, Download, Send
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
@@ -20,17 +20,33 @@ const StatCard = ({ title, value, icon: Icon }) => (
 export default function AdminPortal() {
   const { user } = useAuthStore();
   const setView = useUIStore(state => state.setView);
-  const [users, setUsers] = useState([]);
-  const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
+  
+  // Users
+  const [users, setUsers] = useState([]);
   const [editingBalance, setEditingBalance] = useState(null);
   const [newBalance, setNewBalance] = useState('');
+  const [createUserForm, setCreateUserForm] = useState({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
+  
+  // Transactions
+  const [transactions, setTransactions] = useState([]);
+  
+  // Simulation
   const [simUser, setSimUser] = useState(null);
   const [simRate, setSimRate] = useState(0.05);
   const [simActive, setSimActive] = useState(false);
-  const [createUserForm, setCreateUserForm] = useState({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // KYC
+  const [kycUsers, setKycUsers] = useState([]);
+  const [selectedKycUser, setSelectedKycUser] = useState(null);
+  
+  // Messages
+  const [messages, setMessages] = useState([]);
+  
+  // Newsletter
+  const [subscribers, setSubscribers] = useState([]);
 
+  // Fetch data
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
     setUsers(res.data);
@@ -39,23 +55,40 @@ export default function AdminPortal() {
     const res = await api.get('/admin/transactions');
     setTransactions(res.data);
   };
+  const fetchKycPending = async () => {
+    const res = await api.get('/admin/kyc/pending');
+    setKycUsers(res.data);
+  };
+  const fetchMessages = async () => {
+    const res = await api.get('/admin/contact-messages');
+    setMessages(res.data);
+  };
+  const fetchNewsletter = async () => {
+    const res = await api.get('/admin/newsletter');
+    setSubscribers(res.data);
+  };
 
-  useEffect(() => { fetchUsers(); fetchTransactions(); }, []);
+  useEffect(() => {
+    fetchUsers();
+    fetchTransactions();
+    fetchKycPending();
+    fetchMessages();
+    fetchNewsletter();
+  }, []);
 
+  // User management
   const handleUpdateBalance = async (userId) => {
     await api.patch(`/admin/users/${userId}/balance`, { availableBalance: parseFloat(newBalance) });
     fetchUsers();
     setEditingBalance(null);
     setNewBalance('');
   };
-
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Delete this user?')) {
       await api.delete(`/admin/users/${userId}`);
       fetchUsers();
     }
   };
-
   const handleCreateUser = async (e) => {
     e.preventDefault();
     await api.post('/admin/users', createUserForm);
@@ -63,19 +96,20 @@ export default function AdminPortal() {
     setCreateUserForm({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
   };
 
+  // Transaction approval
   const handleTransactionAction = async (id, status) => {
     await api.patch(`/admin/transactions/${id}`, { status });
     fetchTransactions();
-    fetchUsers();
+    fetchUsers(); // update balances
   };
 
+  // Simulation
   const startSimulation = async () => {
     if (!simUser) return alert('Select a user');
     await api.post('/admin/simulation/start', { userId: simUser, growthRate: simRate });
     setSimActive(true);
     alert('Simulation started');
   };
-
   const stopSimulation = async () => {
     if (!simUser) return;
     await api.post('/admin/simulation/stop', { userId: simUser });
@@ -83,8 +117,37 @@ export default function AdminPortal() {
     alert('Simulation stopped');
   };
 
+  // KYC actions
+  const handleKycAction = async (userId, status) => {
+    await api.patch(`/admin/kyc/${userId}`, { status });
+    fetchKycPending();
+    fetchUsers();
+    setSelectedKycUser(null);
+  };
+
+  // Message actions
+  const markMessageRead = async (id) => {
+    await api.patch(`/admin/contact-messages/${id}/read`);
+    fetchMessages();
+  };
+  const deleteMessage = async (id) => {
+    if (window.confirm('Delete this message?')) {
+      await api.delete(`/admin/contact-messages/${id}`);
+      fetchMessages();
+    }
+  };
+
+  // Newsletter actions
+  const deleteSubscriber = async (id) => {
+    if (window.confirm('Remove this subscriber?')) {
+      await api.delete(`/admin/newsletter/${id}`);
+      fetchNewsletter();
+    }
+  };
+
   const pendingCount = transactions.filter(t => t.status === 'PENDING').length;
-  const tabs = ['users', 'requests', 'simulate', 'create'];
+  const unreadCount = messages.filter(m => !m.isRead).length;
+  const pendingKycCount = kycUsers.length;
 
   return (
     <div className="min-h-screen bg-black p-6">
@@ -97,39 +160,26 @@ export default function AdminPortal() {
           <div className="text-right"><div className="text-xs text-gray-500">System Status</div><div className="text-green-400 font-mono text-sm">● OPERATIONAL</div></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <StatCard title="Total Users" value={users.length} icon={Users} />
           <StatCard title="Total AUM" value={`$${users.reduce((s, u) => s + u.availableBalance, 0).toLocaleString()}`} icon={BarChart3} />
-          <StatCard title="Admins" value={users.filter(u => u.role === 'ADMIN').length} icon={Shield} />
           <StatCard title="Pending Requests" value={pendingCount} icon={Clock} />
+          <StatCard title="Pending KYC" value={pendingKycCount} icon={Shield} />
+          <StatCard title="Unread Messages" value={unreadCount} icon={Mail} />
         </div>
 
-        {/* Mobile hamburger menu */}
-        <div className="lg:hidden mb-4">
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg bg-white/5">
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          {mobileMenuOpen && (
-            <div className="mt-2 flex flex-col gap-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-4">
-              {tabs.map(tab => (
-                <button key={tab} onClick={() => { setActiveTab(tab); setMobileMenuOpen(false); }} className={`px-4 py-2 rounded-lg text-left ${activeTab === tab ? 'bg-gold text-black' : 'text-gray-400'}`}>{tab.toUpperCase()}</button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Desktop tabs */}
-        <div className="hidden lg:flex gap-2 border-b border-white/10 mb-6">
-          {tabs.map(tab => (
+        <div className="flex gap-2 border-b border-white/10 mb-6 overflow-x-auto">
+          {['users', 'transactions', 'simulate', 'kyc', 'messages', 'newsletter'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-t-xl font-medium transition ${activeTab === tab ? 'bg-gold text-black' : 'text-gray-400 hover:text-white'}`}>{tab.toUpperCase()}</button>
           ))}
         </div>
 
-        {/* Content panels (same as before) */}
+        {/* USERS TAB */}
         {activeTab === 'users' && (
           <div className="glass-card p-6 overflow-auto">
+            <div className="mb-6"><button onClick={() => setActiveTab('create')} className="bg-gold text-black px-4 py-2 rounded-lg">+ Create New User</button></div>
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-white/10"><th className="text-left py-2">Name</th><th>Email</th><th>Balance</th><th>Role</th><th>Actions</th></tr></thead>
+              <thead><tr className="border-b border-white/10"><th className="text-left py-2">Name</th><th>Email</th><th>Balance</th><th>KYC</th><th>Role</th><th>Actions</th></tr></thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u._id} className="border-b border-white/5">
@@ -142,6 +192,7 @@ export default function AdminPortal() {
                         <span className="cursor-pointer" onClick={() => { setEditingBalance(u._id); setNewBalance(u.availableBalance); }}>${u.availableBalance.toLocaleString()} <Edit2 size={12} className="inline ml-1 text-gold" /></span>
                       )}
                     </td>
+                    <td className="py-2"><span className={`px-2 py-0.5 rounded-full text-xs ${u.kycStatus === 'VERIFIED' ? 'bg-green-500/20 text-green-400' : u.kycStatus === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{u.kycStatus}</span></td>
                     <td>{u.role}</td>
                     <td className="py-2"><button onClick={() => handleDeleteUser(u._id)} className="text-red-500 hover:bg-red-500/10 p-1 rounded"><Trash2 size={16} /></button></td>
                   </tr>
@@ -151,7 +202,8 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {activeTab === 'requests' && (
+        {/* TRANSACTIONS TAB */}
+        {activeTab === 'transactions' && (
           <div className="glass-card p-6 overflow-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-white/10"><th>User</th><th>Type</th><th>Amount</th><th>Crypto</th><th>Status</th><th>Actions</th></tr></thead>
@@ -178,6 +230,7 @@ export default function AdminPortal() {
           </div>
         )}
 
+        {/* SIMULATE TAB */}
         {activeTab === 'simulate' && (
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold mb-4">Wealth Rise Simulation</h3>
@@ -196,6 +249,87 @@ export default function AdminPortal() {
           </div>
         )}
 
+        {/* KYC TAB */}
+        {activeTab === 'kyc' && (
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-bold mb-4">KYC Verification Requests</h3>
+            {selectedKycUser ? (
+              <div className="space-y-4">
+                <button onClick={() => setSelectedKycUser(null)} className="text-gold text-sm">← Back to list</button>
+                <div className="bg-white/5 p-4 rounded-xl">
+                  <p><strong>Name:</strong> {selectedKycUser.fullName}</p>
+                  <p><strong>Email:</strong> {selectedKycUser.email}</p>
+                  <p><strong>SSN (last 4):</strong> {selectedKycUser.ssnLast4 || 'N/A'}</p>
+                  <p><strong>Submitted:</strong> {new Date(selectedKycUser.createdAt).toLocaleString()}</p>
+                  <div className="mt-4">
+                    <p className="font-bold mb-2">Uploaded Documents:</p>
+                    {selectedKycUser.kycDocuments?.map((doc, i) => (
+                      <a key={i} href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gold underline"><Eye size={16} /> View Document {i+1}</a>
+                    ))}
+                  </div>
+                  <div className="flex gap-4 mt-6">
+                    <button onClick={() => handleKycAction(selectedKycUser._id, 'VERIFIED')} className="bg-green-600 px-4 py-2 rounded-lg">Approve</button>
+                    <button onClick={() => handleKycAction(selectedKycUser._id, 'REJECTED')} className="bg-red-600 px-4 py-2 rounded-lg">Reject</button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {kycUsers.map(u => (
+                  <div key={u._id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center">
+                    <div><p className="font-bold">{u.fullName}</p><p className="text-sm text-gray-400">{u.email}</p></div>
+                    <button onClick={() => setSelectedKycUser(u)} className="bg-gold/20 text-gold px-4 py-2 rounded-lg">Review</button>
+                  </div>
+                ))}
+                {kycUsers.length === 0 && <p className="text-gray-500">No pending KYC requests.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MESSAGES TAB */}
+        {activeTab === 'messages' && (
+          <div className="glass-card p-6 space-y-4">
+            {messages.map(m => (
+              <div key={m._id} className={`p-4 rounded-xl ${!m.isRead ? 'bg-gold/10 border border-gold/20' : 'bg-white/5'}`}>
+                <div className="flex justify-between items-start">
+                  <div><p className="font-bold">{m.name}</p><p className="text-sm text-gray-400">{m.email}</p></div>
+                  <div className="flex gap-2">
+                    {!m.isRead && <button onClick={() => markMessageRead(m._id)} className="text-gold text-xs">Mark read</button>}
+                    <button onClick={() => deleteMessage(m._id)} className="text-red-400 text-xs">Delete</button>
+                  </div>
+                </div>
+                <p className="mt-2">{m.message}</p>
+                <p className="text-xs text-gray-500 mt-2">{new Date(m.createdAt).toLocaleString()}</p>
+              </div>
+            ))}
+            {messages.length === 0 && <p className="text-gray-500">No messages.</p>}
+          </div>
+        )}
+
+        {/* NEWSLETTER TAB */}
+        {activeTab === 'newsletter' && (
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-bold mb-4">Newsletter Subscribers</h3>
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-white/10"><th className="text-left py-2">Email</th><th>Subscribed On</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {subscribers.map(s => (
+                    <tr key={s._id} className="border-b border-white/5">
+                      <td className="py-2">{s.email}</td>
+                      <td className="py-2">{new Date(s.subscribedAt).toLocaleDateString()}</td>
+                      <td className="py-2"><button onClick={() => deleteSubscriber(s._id)} className="text-red-500 text-xs">Remove</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {subscribers.length === 0 && <p className="text-gray-500">No subscribers yet.</p>}
+          </div>
+        )}
+
+        {/* CREATE USER FORM (modal-like) */}
         {activeTab === 'create' && (
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><UserPlus size={20} /> Create New User</h3>
@@ -206,6 +340,7 @@ export default function AdminPortal() {
               <select value={createUserForm.role} onChange={e => setCreateUserForm({...createUserForm, role: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2"><option value="USER">User</option><option value="ADMIN">Admin</option></select>
               <input type="number" placeholder="Initial Balance" value={createUserForm.availableBalance} onChange={e => setCreateUserForm({...createUserForm, availableBalance: parseFloat(e.target.value)})} className="w-full bg-black border border-white/10 rounded-lg p-2" />
               <button type="submit" className="bg-gold text-black px-4 py-2 rounded-lg">Create User</button>
+              <button type="button" onClick={() => setActiveTab('users')} className="ml-2 bg-white/5 px-4 py-2 rounded-lg">Cancel</button>
             </form>
           </div>
         )}
