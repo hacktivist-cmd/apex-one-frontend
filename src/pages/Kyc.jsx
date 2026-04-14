@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Shield, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import api from '../api/axios';
 
@@ -66,7 +66,7 @@ export default function Kyc() {
             </div>
           </div>
           <div>
-            <label className="block text-sm mb-2">Social Security Number (SSN) – last 4 digits</label>
+            <label className="block text-sm mb-2">SSN (last 4 digits)</label>
             <input type="text" maxLength="4" value={ssn} onChange={e => setSsn(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-gold" placeholder="1234" />
           </div>
           {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-sm">{error}</div>}
