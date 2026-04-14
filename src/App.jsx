@@ -15,6 +15,7 @@ import Privacy from './pages/Privacy';
 import Cookies from './pages/Cookies';
 import LegalAudit from './pages/LegalAudit';
 import ProtectedRoute from './components/ProtectedRoute';
+import OAuthRedirect from './pages/OAuthRedirect';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
+          <Route path="/oauth-redirect" element={<OAuthRedirect />} />
         </Routes>
       </div>
     </BrowserRouter>
