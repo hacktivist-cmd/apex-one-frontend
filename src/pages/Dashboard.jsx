@@ -157,7 +157,7 @@ const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   );
 };
 
-// ---------- INVEST MODAL (replaces Trade) ----------
+// ---------- INVEST MODAL (creates transaction) ----------
 const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -169,10 +169,13 @@ const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
     if (totalCost > userBalance) return setError('Insufficient balance');
     setLoading(true);
     try {
+      // Deduct balance
       const newBalance = userBalance - totalCost;
       const userId = JSON.parse(localStorage.getItem('auth-storage'))?.state?.user?.id;
       await api.patch(`/admin/users/${userId}/balance`, { availableBalance: newBalance });
       updateBalance(newBalance);
+      // Record investment transaction
+      await api.post('/invest', { symbol: asset.symbol, amount: totalCost, quantity: parseFloat(amount) });
       onSuccess();
       onClose();
     } catch (err) { setError('Investment failed. Try again.'); }
@@ -217,11 +220,9 @@ export default function Dashboard() {
       setBalance(res.data.availableBalance);
       updateBalance(res.data.availableBalance);
       setKycStatus(res.data.kycStatus);
-      if (res.data.kycStatus !== 'VERIFIED') navigate('/kyc');
+      // NO FORCED REDIRECT – just show warning below
     });
-    // Fetch balance history for chart
     api.get('/user/balance-history').then(res => setChartData(res.data)).catch(console.error);
-    // Fetch notifications
     api.get('/user/notifications').then(res => setNotifications(res.data)).catch(console.error);
     const socket = globalThis.socket;
     if (socket) socket.on('notification', (notif) => setNotifications(prev => [notif, ...prev]));
@@ -248,7 +249,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {kycStatus !== 'VERIFIED' && (<div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center justify-between"><div><AlertCircle className="text-yellow-500 inline mr-2" size={18} /> Your KYC is {kycStatus}. Please complete verification.</div><Link to="/kyc" className="bg-gold text-black px-4 py-2 rounded-lg text-sm">Go to KYC</Link></div>)}
+      {kycStatus !== 'VERIFIED' && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <div><AlertCircle className="text-yellow-500 inline mr-2" size={18} /> Your KYC is {kycStatus}. Please complete verification to access full features.</div>
+          <Link to="/kyc" className="bg-gold text-black px-4 py-2 rounded-lg text-sm">Go to KYC</Link>
+        </div>
+      )}
 
       <div className="bg-gradient-to-br from-gold/10 to-transparent border border-white/10 rounded-2xl p-6 mb-8">
         <p className="text-gray-400 text-sm">Total Net Equity</p>

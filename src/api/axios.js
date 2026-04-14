@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'https://apex-one-backend.onrender.com/api';
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
@@ -16,9 +14,22 @@ api.interceptors.request.use((config) => {
       if (state?.accessToken) {
         config.headers.Authorization = `Bearer ${state.accessToken}`;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to parse auth storage', e);
+    }
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('auth-storage');
+      window.location.href = '/';
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;

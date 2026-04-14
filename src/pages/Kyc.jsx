@@ -30,8 +30,25 @@ export default function Kyc() {
     }
   };
 
-  if (user?.kycStatus === 'VERIFIED') return <div className="text-center py-20"><CheckCircle className="text-green-500 w-12 h-12 mx-auto mb-4" /><p>Verified</p></div>;
-  if (user?.kycStatus === 'PENDING') return <div className="text-center py-20"><AlertCircle className="text-yellow-500 w-12 h-12 mx-auto mb-4" /><p>Pending review</p></div>;
+  if (user?.kycStatus === 'VERIFIED') {
+    return (
+      <div className="text-center py-20">
+        <CheckCircle className="text-green-500 w-16 h-16 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold">KYC Verified</h2>
+        <p className="text-gray-400">Your identity has been verified.</p>
+      </div>
+    );
+  }
+
+  if (user?.kycStatus === 'PENDING') {
+    return (
+      <div className="text-center py-20">
+        <AlertCircle className="text-yellow-500 w-16 h-16 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold">KYC Pending</h2>
+        <p className="text-gray-400">Your documents are being reviewed.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -39,22 +56,24 @@ export default function Kyc() {
       <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm mb-2">Government ID</label>
-            <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center">
+            <label className="block text-sm mb-2">Government ID (Passport/Driver's License)</label>
+            <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-gold/50 transition">
               <input type="file" accept="image/*,application/pdf" onChange={e => setIdFile(e.target.files[0])} className="hidden" id="idUpload" />
               <label htmlFor="idUpload" className="cursor-pointer flex flex-col items-center gap-2">
-                <Upload className="text-gold" />
-                <span>{idFile ? idFile.name : 'Click to upload'}</span>
+                <Upload className="text-gold w-8 h-8" />
+                <span className="text-sm">{idFile ? idFile.name : 'Click or drag to upload'}</span>
               </label>
             </div>
           </div>
           <div>
-            <label className="block text-sm mb-2">SSN (last 4 digits)</label>
-            <input type="text" maxLength="4" value={ssn} onChange={e => setSsn(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" />
+            <label className="block text-sm mb-2">Social Security Number (SSN) – last 4 digits</label>
+            <input type="text" maxLength="4" value={ssn} onChange={e => setSsn(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-gold" placeholder="1234" />
           </div>
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-          {message && <div className="text-green-500 text-sm">{message}</div>}
-          <button type="submit" disabled={loading} className="bg-gold text-black px-6 py-2 rounded-xl">Submit KYC</button>
+          {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-sm">{error}</div>}
+          {message && <div className="p-3 bg-green-500/10 border border-green-500/20 rounded text-green-500 text-sm">{message}</div>}
+          <button type="submit" disabled={loading} className="w-full bg-gold text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition disabled:opacity-50">
+            {loading ? 'Submitting...' : 'Submit KYC'}
+          </button>
         </form>
       </div>
     </div>
