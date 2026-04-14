@@ -1,9 +1,9 @@
-import { Link } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, ShieldCheck, Zap, Globe, ArrowRight, ChevronRight,
-  BarChart3, Lock, Star, Mail, Send, Facebook, Twitter, Linkedin, Instagram
+  BarChart3, Lock, Star, Mail, Send
 } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import useUIStore from '../store/useUIStore';
@@ -101,7 +101,7 @@ const Features = () => {
   );
 };
 
-// Client Reviews Section (with fallback)
+// Client Reviews Section
 const Reviews = ({ reviews }) => {
   if (!reviews || reviews.length === 0) {
     return (
@@ -133,7 +133,7 @@ const Reviews = ({ reviews }) => {
   );
 };
 
-// Newsletter Footer Component
+// Newsletter Footer Component (with company logo)
 const Footer = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -153,12 +153,14 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div>
-            <div className="flex items-center gap-2 mb-6"><TrendingUp className="text-gold w-8 h-8" /><span className="text-2xl font-bold">APEX ONE</span></div>
+            <Link to="/" className="flex items-center gap-2 mb-6">
+              <img src="/logo.png" alt="APEX ONE" className="h-10 w-auto" />
+            </Link>
             <p className="text-gray-500 text-sm">Redefining digital asset management with precision and security.</p>
           </div>
-          <div><h4 className="text-white font-bold mb-6">Quick Links</h4><ul className="space-y-3"><li><a href="/markets" className="text-gray-500 hover:text-gold transition">Markets</a></li><li><a href="/about" className="text-gray-500 hover:text-gold transition">About Us</a></li><li><a href="/contact" className="text-gray-500 hover:text-gold transition">Contact</a></li><li><a href="/dashboard" className="text-gray-500 hover:text-gold transition">Dashboard</a></li></ul></div>
-          <div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-3"><li><a href="#" className="text-gray-500 hover:text-gold transition">Terms of Service</a></li><li><a href="#" className="text-gray-500 hover:text-gold transition">Privacy Policy</a></li><li><a href="#" className="text-gray-500 hover:text-gold transition">Cookie Policy</a></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Quick Links</h4><ul className="space-y-3"><li><Link to="/markets" className="text-gray-500 hover:text-gold transition">Markets</Link></li><li><Link to="/about" className="text-gray-500 hover:text-gold transition">About Us</Link></li><li><Link to="/contact" className="text-gray-500 hover:text-gold transition">Contact</Link></li><li><Link to="/dashboard" className="text-gray-500 hover:text-gold transition">Dashboard</Link></li></ul></div>
           <div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-3"><li><Link to="/terms" className="text-gray-500 hover:text-gold transition">Terms of Service</Link></li><li><Link to="/privacy" className="text-gray-500 hover:text-gold transition">Privacy Policy</Link></li><li><Link to="/cookies" className="text-gray-500 hover:text-gold transition">Cookie Policy</Link></li><li><Link to="/legal-audit" className="text-gray-500 hover:text-gold transition">Legal Audit</Link></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Newsletter</h4><form onSubmit={handleSubscribe} className="flex gap-2"><input type="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-gold" /><button type="submit" className="bg-gold text-black p-2 rounded-lg"><Send size={18} /></button></form>{message && <p className="text-xs text-gold mt-2">{message}</p>}</div>
         </div>
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
           <p>© 2025 APEX ONE. All rights reserved.</p>
@@ -179,7 +181,6 @@ export default function LandingPage() {
         setReviews(res.data);
       } catch (err) {
         console.error('Failed to load reviews:', err);
-        // Fallback to empty array (no reviews shown)
         setReviews([]);
       }
     };
