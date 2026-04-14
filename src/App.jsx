@@ -10,6 +10,10 @@ import Settings from './pages/Settings';
 import Portfolio from './pages/Portfolio';
 import Profile from './pages/Profile';
 import Kyc from './pages/Kyc';
+import TermsOfService from './pages/TermsOfService';
+import Privacy from './pages/Privacy';
+import Cookies from './pages/Cookies';
+import LegalAudit from './pages/LegalAudit';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -21,6 +25,10 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/legal-audit" element={<LegalAudit />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPortal /></ProtectedRoute>} />
           <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
