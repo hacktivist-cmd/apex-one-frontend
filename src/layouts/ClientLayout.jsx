@@ -10,7 +10,7 @@ const SidebarItem = ({ icon: Icon, label, to, active }) => (
 );
 
 export default function ClientLayout() {
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -23,6 +23,10 @@ export default function ClientLayout() {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const profileImage = user?.profilePicture 
+    ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${user.profilePicture}` 
+    : null;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
@@ -37,6 +41,17 @@ export default function ClientLayout() {
           ))}
         </nav>
         <div className="pt-6 border-t border-white/10">
+          <div className="flex items-center gap-3 mb-4">
+            {profileImage ? (
+              <img src={profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-sm font-bold">{user?.fullName?.charAt(0)}</div>
+            )}
+            <div className="flex-1">
+              <p className="text-sm font-semibold truncate">{user?.fullName}</p>
+              <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
+            </div>
+          </div>
           <button onClick={logout} className="flex items-center gap-3 text-red-500 hover:bg-red-500/10 p-3 rounded-xl w-full transition">
             <LogOut size={20} /><span className="text-sm">Logout</span>
           </button>

@@ -53,6 +53,9 @@ export default function AdminPortal() {
   // Newsletter
   const [subscribers, setSubscribers] = useState([]);
 
+  // Base URL for uploaded files
+  const backendBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://apex-one-backend.onrender.com';
+
   // Fetch data functions
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
@@ -112,7 +115,7 @@ export default function AdminPortal() {
   const handleTransactionAction = async (id, status) => {
     await api.patch(`/admin/transactions/${id}`, { status });
     fetchTransactions();
-    fetchUsers(); // update balances
+    fetchUsers();
   };
 
   // Simulation – Individual
@@ -129,10 +132,9 @@ export default function AdminPortal() {
     alert('Individual simulation stopped');
   };
 
-  // Simulation – All users (global)
+  // Simulation – All users
   const startGlobalSimulation = async () => {
     setSimAllActive(true);
-    // Clear any existing intervals
     Object.values(simulationIntervals).forEach(interval => clearInterval(interval));
     const intervals = {};
     for (const u of users) {
@@ -145,7 +147,7 @@ export default function AdminPortal() {
       intervals[u._id] = interval;
     }
     setSimulationIntervals(intervals);
-    alert('Global simulation started for all users');
+    alert('Global simulation started');
   };
   const stopGlobalSimulation = async () => {
     Object.values(simulationIntervals).forEach(interval => clearInterval(interval));
@@ -281,7 +283,7 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* SIMULATE TAB (Individual + Global) */}
+        {/* SIMULATE TAB */}
         {activeTab === 'simulate' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="glass-card p-6">
@@ -328,7 +330,7 @@ export default function AdminPortal() {
                   <div className="mt-4">
                     <p className="font-bold mb-2">Uploaded Documents:</p>
                     {selectedKycUser.kycDocuments?.map((doc, i) => (
-                      <a key={i} href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gold underline"><Eye size={16} /> View Document {i+1}</a>
+                      <a key={i} href={`${backendBase}/${doc}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gold underline"><Eye size={16} /> View Document {i+1}</a>
                     ))}
                   </div>
                   <div className="flex gap-4 mt-6">
