@@ -159,28 +159,42 @@ const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
 
 // ---------- INVEST MODAL (creates transaction) ----------
 const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { updateBalance } = useAuthStore();
   const totalCost = amount ? parseFloat(amount) * asset.price : 0;
   const handleInvest = async () => {
-    if (!amount || parseFloat(amount) <= 0) return setError('Invalid amount');
-    if (totalCost > userBalance) return setError('Insufficient balance');
+    if (!amount || parseFloat(amount) <= 0) return setError("Invalid amount");
+    if (parseFloat(amount) < 5000) return setError("Minimum investment is $5,000");
+    if (totalCost > userBalance) return setError("Insufficient balance");
     setLoading(true);
     try {
-      // Deduct balance
       const newBalance = userBalance - totalCost;
-      const userId = JSON.parse(localStorage.getItem('auth-storage'))?.state?.user?.id;
+      const userId = JSON.parse(localStorage.getItem("auth-storage"))?.state?.user?.id;
       await api.patch(`/admin/users/${userId}/balance`, { availableBalance: newBalance });
       updateBalance(newBalance);
-      // Record investment transaction
-      await api.post('/invest', { symbol: asset.symbol, amount: totalCost, quantity: parseFloat(amount) });
+      await api.post("/invest", { symbol: asset.symbol, amount: totalCost, quantity: parseFloat(amount) });
       onSuccess();
       onClose();
-    } catch (err) { setError('Investment failed. Try again.'); }
+    } catch (err) { setError(err.response?.data?.message || "Investment failed. Try again."); }
     finally { setLoading(false); }
   };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Invest in {asset.name}</h2>
+        <div className="space-y-4">
+          <input type="number" placeholder="Amount (USD) – Min $5,000" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" />
+          <div><label className="text-xs text-gray-500">Total Cost</label><div className="text-2xl font-bold">${totalCost.toLocaleString()}</div></div>
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <button onClick={handleInvest} disabled={loading} className="w-full bg-gold text-black py-3 rounded-xl font-bold">{loading ? "Processing..." : "Confirm Investment"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">

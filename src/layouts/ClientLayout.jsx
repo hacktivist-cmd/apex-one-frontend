@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, User, ShieldCheck, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Wallet, User, ShieldCheck, Settings, LogOut, Menu, X, UserCircle } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
-import { getProfile } from '../api/auth';
+import api from '../api/axios';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
   <Link to={to} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-[#D4AF37] text-black font-bold shadow-md' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
@@ -14,10 +14,16 @@ export default function ClientLayout() {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profilePic, setProfilePic] = useState('');
+  const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
 
   useEffect(() => {
-    getProfile().then(res => setProfilePic(res.data.profilePicture || '')).catch(console.error);
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/user/profile');
+        setProfilePicture(res.data.profilePicture);
+      } catch (err) {}
+    };
+    fetchProfile();
   }, []);
 
   const navItems = [
@@ -37,14 +43,6 @@ export default function ClientLayout() {
         <Link to="/dashboard" className="flex items-center gap-2 mb-8">
           <img src="/logo.png" alt="APEX ONE" className="h-8 w-auto" />
         </Link>
-        <div className="flex items-center gap-3 mb-6 p-2 bg-white/5 rounded-xl">
-          {profilePic ? (
-            <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold">{user?.fullName?.charAt(0)}</div>
-          )}
-          <div className="flex-1"><p className="text-sm font-semibold">{user?.fullName}</p><p className="text-[10px] text-gray-500">{user?.email}</p></div>
-        </div>
         <nav className="flex-1 space-y-2">
           {navItems.map(item => (
             <SidebarItem key={item.path} icon={item.icon} label={item.label} to={item.path} active={isActive(item.path)} />
@@ -69,14 +67,6 @@ export default function ClientLayout() {
             <Link to="/dashboard" className="flex items-center gap-2 mb-8" onClick={() => setIsMobileMenuOpen(false)}>
               <img src="/logo.png" alt="APEX ONE" className="h-8 w-auto" />
             </Link>
-            <div className="flex items-center gap-3 mb-6 p-2 bg-white/5 rounded-xl">
-              {profilePic ? (
-                <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold">{user?.fullName?.charAt(0)}</div>
-              )}
-              <div className="flex-1"><p className="text-sm font-semibold">{user?.fullName}</p><p className="text-[10px] text-gray-500">{user?.email}</p></div>
-            </div>
             <nav className="space-y-2">
               {navItems.map(item => (
                 <Link key={item.path} to={item.path} onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl ${isActive(item.path) ? 'bg-[#D4AF37] text-black font-bold' : 'text-gray-400 hover:bg-white/5'}`}>
@@ -93,6 +83,17 @@ export default function ClientLayout() {
 
       {/* Main content */}
       <main className="flex-1 md:ml-64 p-4 md:p-8">
+        {/* Top bar with profile picture */}
+        <div className="flex justify-end mb-6">
+          <div className="flex items-center gap-3">
+            {profilePicture ? (
+              <img src={profilePicture} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-gold" />
+            ) : (
+              <UserCircle size={40} className="text-gray-500" />
+            )}
+            <span className="text-sm font-medium">{user?.fullName}</span>
+          </div>
+        </div>
         <Outlet />
       </main>
     </div>
