@@ -7,8 +7,7 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/withdrawals').then(res => {
-      // Combine deposits and withdrawals (in real app, fetch both)
+    api.get('/user/transactions').then(res => {
       setTransactions(res.data);
       setLoading(false);
     }).catch(err => console.error(err));
@@ -22,7 +21,7 @@ export default function Transactions() {
       <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="border-b border-white/10 bg-white/5">
-            <tr><th className="text-left p-4">Type</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+            <tr><th className="text-left p-4">Type</th><th>Amount</th><th>Status</th><th>Date</th><th>Crypto</th></tr>
           </thead>
           <tbody>
             {transactions.map(tx => (
@@ -31,9 +30,10 @@ export default function Transactions() {
                 <td>${tx.amount}</td>
                 <td><span className={`px-2 py-0.5 rounded-full text-xs ${tx.status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : tx.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{tx.status}</span></td>
                 <td>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                <td>{tx.cryptoType || '-'}</td>
               </tr>
             ))}
-            {transactions.length === 0 && <tr><td colSpan="4" className="p-8 text-center text-gray-500">No transactions yet.</td></tr>}
+            {transactions.length === 0 && <tr><td colSpan="5" className="p-8 text-center text-gray-500">No transactions yet.</td></tr>}
           </tbody>
         </table>
       </div>
