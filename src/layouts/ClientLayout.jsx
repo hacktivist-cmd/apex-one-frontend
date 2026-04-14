@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Wallet, User, ShieldCheck, Settings, LogOut, Menu, X } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
-import api from '../api/axios';
+import { getProfile } from '../api/auth';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
   <Link to={to} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-[#D4AF37] text-black font-bold shadow-md' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
@@ -17,13 +17,7 @@ export default function ClientLayout() {
   const [profilePic, setProfilePic] = useState('');
 
   useEffect(() => {
-    // Fetch user profile to get the profile picture URL
-    api.get('/user/profile').then(res => {
-      if (res.data.profilePicture) {
-        const backendBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://apex-one-backend.onrender.com';
-        setProfilePic(`${backendBase}/${res.data.profilePicture}`);
-      }
-    }).catch(console.error);
+    getProfile().then(res => setProfilePic(res.data.profilePicture || '')).catch(console.error);
   }, []);
 
   const navItems = [
@@ -43,6 +37,14 @@ export default function ClientLayout() {
         <Link to="/dashboard" className="flex items-center gap-2 mb-8">
           <img src="/logo.png" alt="APEX ONE" className="h-8 w-auto" />
         </Link>
+        <div className="flex items-center gap-3 mb-6 p-2 bg-white/5 rounded-xl">
+          {profilePic ? (
+            <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold">{user?.fullName?.charAt(0)}</div>
+          )}
+          <div className="flex-1"><p className="text-sm font-semibold">{user?.fullName}</p><p className="text-[10px] text-gray-500">{user?.email}</p></div>
+        </div>
         <nav className="flex-1 space-y-2">
           {navItems.map(item => (
             <SidebarItem key={item.path} icon={item.icon} label={item.label} to={item.path} active={isActive(item.path)} />
@@ -52,18 +54,6 @@ export default function ClientLayout() {
           <button onClick={logout} className="flex items-center gap-3 text-red-500 hover:bg-red-500/10 p-3 rounded-xl w-full transition">
             <LogOut size={20} /><span className="text-sm">Logout</span>
           </button>
-        </div>
-        {/* Profile picture at bottom */}
-        <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
-          {profilePic ? (
-            <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-sm font-bold">{user?.fullName?.charAt(0)}</div>
-          )}
-          <div className="flex-1">
-            <p className="text-sm font-medium truncate">{user?.fullName}</p>
-            <p className="text-[10px] text-gray-500">{user?.email}</p>
-          </div>
         </div>
       </aside>
 
@@ -79,6 +69,14 @@ export default function ClientLayout() {
             <Link to="/dashboard" className="flex items-center gap-2 mb-8" onClick={() => setIsMobileMenuOpen(false)}>
               <img src="/logo.png" alt="APEX ONE" className="h-8 w-auto" />
             </Link>
+            <div className="flex items-center gap-3 mb-6 p-2 bg-white/5 rounded-xl">
+              {profilePic ? (
+                <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold">{user?.fullName?.charAt(0)}</div>
+              )}
+              <div className="flex-1"><p className="text-sm font-semibold">{user?.fullName}</p><p className="text-[10px] text-gray-500">{user?.email}</p></div>
+            </div>
             <nav className="space-y-2">
               {navItems.map(item => (
                 <Link key={item.path} to={item.path} onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl ${isActive(item.path) ? 'bg-[#D4AF37] text-black font-bold' : 'text-gray-400 hover:bg-white/5'}`}>
@@ -89,17 +87,6 @@ export default function ClientLayout() {
                 <LogOut size={20} /><span className="text-sm">Logout</span>
               </button>
             </nav>
-            <div className="mt-6 pt-6 border-t border-white/10 flex items-center gap-3">
-              {profilePic ? (
-                <img src={profilePic} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-sm font-bold">{user?.fullName?.charAt(0)}</div>
-              )}
-              <div className="flex-1">
-                <p className="text-sm font-medium truncate">{user?.fullName}</p>
-                <p className="text-[10px] text-gray-500">{user?.email}</p>
-              </div>
-            </div>
           </div>
         </div>
       )}
