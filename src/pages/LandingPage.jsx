@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, ShieldCheck, Zap, Globe, ArrowRight, ChevronRight,
-  BarChart3, Lock, Star, Mail, Send, X, User
+  BarChart3, Lock, Star, Mail, Send, User, Phone, MessageSquare, X
 } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import useUIStore from '../store/useUIStore';
-import useAuthStore from '../store/useAuthStore';
 import api from '../api/axios';
 
-// Hero Section (unchanged)
+// Hero Section
 const Hero = () => {
   const setAuthModalOpen = useUIStore(state => state.setAuthModalOpen);
   return (
@@ -21,23 +20,12 @@ const Hero = () => {
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-[#D4AF37] uppercase bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full backdrop-blur-sm">
-            The Future of Wealth Management
-          </span>
-          <h1 className="text-5xl md:text-8xl font-black text-white mb-6 leading-tight">
-            Watch Your <br />
-            <span className="bg-gradient-to-r from-[#D4AF37] via-[#F3D06D] to-[#D4AF37] bg-clip-text text-transparent">Wealth Rise</span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed drop-shadow-lg">
-            Experience institutional-grade crypto investment tools. Deposit, track, and scale your portfolio with APEX ONE.
-          </p>
+          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-[#D4AF37] uppercase bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full backdrop-blur-sm">The Future of Wealth Management</span>
+          <h1 className="text-5xl md:text-8xl font-black text-white mb-6 leading-tight">Watch Your <br /><span className="bg-gradient-to-r from-[#D4AF37] via-[#F3D06D] to-[#D4AF37] bg-clip-text text-transparent">Wealth Rise</span></h1>
+          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed drop-shadow-lg">Experience institutional-grade crypto investment tools. Deposit, track, and scale your portfolio with APEX ONE.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => setAuthModalOpen(true)} className="px-8 py-4 bg-[#D4AF37] text-black font-black rounded-xl text-lg flex items-center gap-2 hover:scale-105 transition-transform shadow-lg">
-              Open Account <ArrowRight className="w-5 h-5" />
-            </button>
-            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold rounded-xl text-lg hover:bg-white/20 transition-colors">
-              View Markets
-            </button>
+            <button onClick={() => setAuthModalOpen(true)} className="px-8 py-4 bg-[#D4AF37] text-black font-black rounded-xl text-lg flex items-center gap-2 hover:scale-105 transition-transform shadow-lg">Open Account <ArrowRight className="w-5 h-5" /></button>
+            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold rounded-xl text-lg hover:bg-white/20 transition-colors">View Markets</button>
           </div>
         </motion.div>
       </div>
@@ -96,72 +84,62 @@ const Features = () => {
   );
 };
 
-// Review Modal (for users to submit)
-const ReviewModal = ({ isOpen, onClose, onSubmit }) => {
+// Review Form Modal (public submission)
+const ReviewFormModal = ({ isOpen, onClose, onSubmit }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return setError('Please write a review');
-    setSubmitting(true);
+    setLoading(true);
+    setMessage('');
     try {
-      await onSubmit({ rating, text });
-      setRating(5);
-      setText('');
-      onClose();
+      await onSubmit({ name, email, rating, text });
+      setMessage('Thank you! Your review will be published after admin approval.');
+      setTimeout(() => { onClose(); setName(''); setEmail(''); setRating(5); setText(''); setMessage(''); }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit');
+      setMessage(err.response?.data?.message || 'Submission failed');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
+      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
-        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Write a Review</h2>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Leave a Review</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-2">Rating</label>
-            <div className="flex gap-2">
-              {[1,2,3,4,5].map(r => (
-                <button key={r} type="button" onClick={() => setRating(r)} className={`text-2xl ${r <= rating ? 'text-[#D4AF37]' : 'text-gray-500'}`}>★</button>
-              ))}
-            </div>
-          </div>
-          <div><textarea placeholder="Share your experience..." value={text} onChange={e => setText(e.target.value)} rows={4} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]" required /></div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button type="submit" disabled={submitting} className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-xl">{submitting ? 'Submitting...' : 'Submit Review'}</button>
+          <div><label className="text-xs text-gray-500">Name</label><input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3" /></div>
+          <div><label className="text-xs text-gray-500">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3" /></div>
+          <div><label className="text-xs text-gray-500">Rating</label><div className="flex gap-2">{[...Array(5)].map((_, i) => <Star key={i} size={24} className={`cursor-pointer ${i < rating ? 'text-[#D4AF37] fill-[#D4AF37]' : 'text-gray-500'}`} onClick={() => setRating(i+1)} />)}</div></div>
+          <div><label className="text-xs text-gray-500">Review</label><textarea value={text} onChange={e => setText(e.target.value)} rows="4" required className="w-full bg-white/5 border border-white/10 rounded-xl p-3"></textarea></div>
+          {message && <div className="p-2 bg-green-500/10 text-green-500 rounded text-sm">{message}</div>}
+          <button type="submit" disabled={loading} className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-xl">{loading ? 'Submitting...' : 'Submit Review'}</button>
         </form>
       </div>
     </div>
   );
 };
 
-// Marquee Reviews Section
-const ReviewsMarquee = ({ reviews }) => {
-  if (!reviews.length) return null;
-  // Duplicate reviews for seamless loop
-  const allReviews = [...reviews, ...reviews];
+// Marquee Reviews
+const MarqueeReviews = ({ reviews }) => {
+  if (!reviews || reviews.length === 0) return null;
+  const doubled = [...reviews, ...reviews];
   return (
-    <section className="py-12 overflow-hidden border-y border-white/5 bg-black/30">
-      <div className="relative">
-        <div className="flex animate-marquee whitespace-nowrap gap-6">
-          {allReviews.map((review, idx) => (
-            <div key={idx} className="inline-block w-80 p-4 bg-white/5 rounded-xl border border-white/10 mx-2">
-              <div className="flex items-center gap-3 mb-2">
-                <img src={review.image || `https://ui-avatars.com/api/?name=${review.name}&background=D4AF37&color=fff`} alt={review.name} className="w-10 h-10 rounded-full object-cover" />
-                <div><p className="font-bold text-sm">{review.name}</p><div className="flex text-[#D4AF37] text-xs">{'★'.repeat(review.rating)}{'☆'.repeat(5-review.rating)}</div></div>
-              </div>
-              <p className="text-gray-300 text-sm line-clamp-2">"{review.text}"</p>
-            </div>
-          ))}
-        </div>
+    <div className="w-full overflow-hidden whitespace-nowrap bg-black/40 backdrop-blur-sm border-y border-white/5 py-3">
+      <div className="inline-flex animate-marquee">
+        {doubled.map((review, idx) => (
+          <div key={idx} className="inline-flex items-center gap-4 mx-8">
+            <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-sm font-bold">{review.name.charAt(0)}</div><div><p className="text-sm font-semibold">{review.name}</p><div className="flex text-[#D4AF37] text-xs">{Array(review.rating).fill().map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div></div></div>
+            <p className="text-gray-300 text-sm italic">"{review.text.slice(0, 100)}..."</p>
+          </div>
+        ))}
       </div>
       <style>{`
         @keyframes marquee {
@@ -170,17 +148,31 @@ const ReviewsMarquee = ({ reviews }) => {
         }
         .animate-marquee {
           animation: marquee 30s linear infinite;
-          width: fit-content;
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
         }
       `}</style>
+    </div>
+  );
+};
+
+// Client Reviews Section (grid + marquee)
+const ReviewsSection = ({ reviews, onOpenReviewForm }) => {
+  const approvedReviews = reviews.filter(r => r.isActive);
+  return (
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">What Our Clients Say</h2>
+          <p className="text-gray-400">Trusted by investors worldwide</p>
+          <button onClick={onOpenReviewForm} className="mt-6 bg-gold text-black px-6 py-2 rounded-lg font-semibold">Leave a Review</button>
+        </div>
+        {approvedReviews.length > 0 && <MarqueeReviews reviews={approvedReviews} />}
+        {approvedReviews.length === 0 && <p className="text-center text-gray-500">Be the first to leave a review!</p>}
+      </div>
     </section>
   );
 };
 
-// Footer
+// Footer (same as before)
 const Footer = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -191,21 +183,18 @@ const Footer = () => {
       setMessage('Subscribed!');
       setEmail('');
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage(err.response?.data?.message || 'Error'); }
+    } catch (err) { setMessage('Error'); }
   };
   return (
     <footer className="bg-black border-t border-white/5 pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          <div><Link to="/" className="flex items-center gap-2 mb-6"><img src="/logo.png" alt="APEX ONE" className="h-10 w-auto" /></Link><p className="text-gray-500 text-sm">Redefining digital asset management with precision and security.</p></div>
-          <div><h4 className="text-white font-bold mb-6">Quick Links</h4><ul className="space-y-3"><li><Link to="/markets" className="text-gray-500 hover:text-gold transition">Markets</Link></li><li><Link to="/about" className="text-gray-500 hover:text-gold transition">About Us</Link></li><li><Link to="/contact" className="text-gray-500 hover:text-gold transition">Contact</Link></li><li><Link to="/dashboard" className="text-gray-500 hover:text-gold transition">Dashboard</Link></li></ul></div>
-          <div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-3"><li><Link to="/terms" className="text-gray-500 hover:text-gold transition">Terms of Service</Link></li><li><Link to="/privacy" className="text-gray-500 hover:text-gold transition">Privacy Policy</Link></li><li><Link to="/cookies" className="text-gray-500 hover:text-gold transition">Cookie Policy</Link></li><li><Link to="/legal-audit" className="text-gray-500 hover:text-gold transition">Legal Audit</Link></li></ul></div>
-          <div><h4 className="text-white font-bold mb-6">Newsletter</h4><form onSubmit={handleSubscribe} className="flex gap-2"><input type="email" placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)} required className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-gold" /><button type="submit" className="bg-gold text-black p-2 rounded-lg"><Send size={18} /></button></form>{message && <p className="text-xs text-gold mt-2">{message}</p>}</div>
+          <div><Link to="/" className="flex items-center gap-2 mb-6"><img src="/logo.png" alt="APEX ONE" className="h-10 w-auto" /></Link><p className="text-gray-500 text-sm">Redefining digital asset management.</p></div>
+          <div><h4 className="text-white font-bold mb-6">Quick Links</h4><ul className="space-y-3"><li><Link to="/markets" className="text-gray-500 hover:text-gold">Markets</Link></li><li><Link to="/about" className="text-gray-500 hover:text-gold">About</Link></li><li><Link to="/contact" className="text-gray-500 hover:text-gold">Contact</Link></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-3"><li><Link to="/terms" className="text-gray-500 hover:text-gold">Terms</Link></li><li><Link to="/privacy" className="text-gray-500 hover:text-gold">Privacy</Link></li><li><Link to="/cookies" className="text-gray-500 hover:text-gold">Cookies</Link></li><li><Link to="/legal-audit" className="text-gray-500 hover:text-gold">Legal Audit</Link></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Newsletter</h4><form onSubmit={handleSubscribe} className="flex gap-2"><input type="email" placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)} required className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2" /><button type="submit" className="bg-gold text-black p-2 rounded-lg"><Send size={18} /></button></form>{message && <p className="text-xs text-gold mt-2">{message}</p>}</div>
         </div>
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
-          <p>© 2025 APEX ONE. All rights reserved.</p>
-          <div className="flex gap-4"><Lock className="w-4 h-4"/><ShieldCheck className="w-4 h-4"/></div>
-        </div>
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600"><p>© 2025 APEX ONE. All rights reserved.</p><div className="flex gap-4"><Lock className="w-4 h-4"/><ShieldCheck className="w-4 h-4"/></div></div>
       </div>
     </footer>
   );
@@ -213,10 +202,8 @@ const Footer = () => {
 
 // Main Landing Page
 export default function LandingPage() {
-  const { user } = useAuthStore();
   const [reviews, setReviews] = useState([]);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const setAuthModalOpen = useUIStore(state => state.setAuthModalOpen);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
 
   const fetchReviews = async () => {
     try {
@@ -225,14 +212,11 @@ export default function LandingPage() {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => {
-    fetchReviews();
-  }, []);
+  useEffect(() => { fetchReviews(); }, []);
 
-  const handleSubmitReview = async ({ rating, text }) => {
-    await api.post('/reviews', { rating, text });
-    alert('Review submitted for approval. Thank you!');
-    fetchReviews(); // not needed since pending won't show, but we refresh anyway
+  const handleSubmitReview = async (reviewData) => {
+    await api.post('/reviews/submit', reviewData);
+    // Do not refetch immediately – will appear after admin approval
   };
 
   return (
@@ -248,35 +232,18 @@ export default function LandingPage() {
         </div>
       </div>
       <Features />
-      
-      {/* Reviews Section with Marquee */}
-      <div className="relative">
-        {reviews.length > 0 && <ReviewsMarquee reviews={reviews} />}
-        {user && (
-          <div className="text-center py-8">
-            <button onClick={() => setReviewModalOpen(true)} className="bg-gold text-black px-6 py-2 rounded-lg font-semibold inline-flex items-center gap-2">
-              <Star size={16} /> Write a Review
-            </button>
-          </div>
-        )}
-        {!user && (
-          <div className="text-center py-8">
-            <button onClick={() => setAuthModalOpen(true)} className="text-gold underline">Login to leave a review</button>
-          </div>
-        )}
-      </div>
-
+      <ReviewsSection reviews={reviews} onOpenReviewForm={() => setReviewFormOpen(true)} />
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-[#D4AF37]/5" />
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-6xl font-black mb-8">Ready to witness the rise?</h2>
           <p className="text-gray-400 text-lg mb-10">Join thousands of investors who have already secured their future with APEX ONE.</p>
-          <button onClick={() => setAuthModalOpen(true)} className="px-10 py-5 bg-[#D4AF37] text-black font-black rounded-2xl text-xl shadow-lg hover:scale-105 transition-transform">Create Free Account</button>
+          <button onClick={() => useUIStore.getState().setAuthModalOpen(true)} className="px-10 py-5 bg-[#D4AF37] text-black font-black rounded-2xl text-xl shadow-lg hover:scale-105 transition-transform">Create Free Account</button>
         </div>
       </section>
       <Footer />
       <AuthModal />
-      <ReviewModal isOpen={reviewModalOpen} onClose={() => setReviewModalOpen(false)} onSubmit={handleSubmitReview} />
+      <ReviewFormModal isOpen={reviewFormOpen} onClose={() => setReviewFormOpen(false)} onSubmit={handleSubmitReview} />
     </div>
   );
 }

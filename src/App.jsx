@@ -16,6 +16,7 @@ import Privacy from './pages/Privacy';
 import Cookies from './pages/Cookies';
 import LegalAudit from './pages/LegalAudit';
 import OAuthRedirect from './pages/OAuthRedirect';
+import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function AppContent() {
@@ -46,6 +47,7 @@ function AppContent() {
 
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPortal /></ProtectedRoute>} />
         <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
   );
