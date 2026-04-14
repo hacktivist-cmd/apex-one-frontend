@@ -35,6 +35,7 @@ function AppContent() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/legal-audit" element={<LegalAudit />} />
+        <Route path="/markets" element={<Markets />} />
         <Route path="/oauth-redirect" element={<OAuthRedirect />} />
 
         <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
@@ -46,7 +47,6 @@ function AppContent() {
         </Route>
 
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPortal /></ProtectedRoute>} />
-        <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

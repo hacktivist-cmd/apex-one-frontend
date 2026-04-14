@@ -13,11 +13,6 @@ import { getProfile } from '../api/auth';
 import api from '../api/axios';
 import RealTimeChart from '../components/RealTimeChart';
 
-const PERFORMANCE_DATA = [
-  { name: 'Mon', value: 42000 }, { name: 'Tue', value: 43500 }, { name: 'Wed', value: 42800 },
-  { name: 'Thu', value: 45000 }, { name: 'Fri', value: 44200 }, { name: 'Sat', value: 46800 }, { name: 'Sun', value: 48500 },
-];
-
 const INVESTMENT_ASSETS = [
   { symbol: 'TSLA', name: 'Tesla Inc', price: 175.42, change: '+2.3%', up: true },
   { symbol: 'USOIL', name: 'WTI Crude Oil', price: 78.50, change: '-1.2%', up: false },
@@ -33,12 +28,11 @@ const DEFAULT_WATCHLIST = [
   { symbol: 'TSLA', price: 175.42, change: '+2.3%', up: true },
 ];
 
-// Deposit Modal with payment methods
+// ---------- DEPOSIT MODAL ----------
 const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = useState('method');
   const [method, setMethod] = useState('');
   const [amount, setAmount] = useState('');
-  const [cryptoType, setCryptoType] = useState('BTC');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,7 +45,6 @@ const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   ];
 
   const selectedMethod = paymentMethods.find(m => m.id === method);
-
   const handleMethodSelect = (m) => { setMethod(m); setStep('details'); };
   const handleProceed = () => setStep('confirm');
   const handleConfirm = async () => {
@@ -101,7 +94,7 @@ const DepositModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-// Withdrawal Modal
+// ---------- WITHDRAWAL MODAL ----------
 const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => {
   const [amount, setAmount] = useState('');
   const [destinationAddr, setDestinationAddr] = useState('');
@@ -140,7 +133,7 @@ const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => {
   );
 };
 
-// Discover Assets Modal
+// ---------- DISCOVER ASSETS MODAL ----------
 const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   const [search, setSearch] = useState('');
   const filteredAssets = INVESTMENT_ASSETS.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.symbol.toLowerCase().includes(search.toLowerCase()));
@@ -164,56 +157,44 @@ const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
   );
 };
 
-// Trade Modal
-const TradeModal = ({ asset, onClose, onSuccess, userBalance }) => {
-  const [side, setSide] = useState('buy');
+// ---------- INVEST MODAL (replaces Trade) ----------
+const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
   const [amount, setAmount] = useState('');
-  const [stopLoss, setStopLoss] = useState('');
-  const [takeProfit, setTakeProfit] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { updateBalance } = useAuthStore();
   const totalCost = amount ? parseFloat(amount) * asset.price : 0;
-  const handleTrade = async () => {
+  const handleInvest = async () => {
     if (!amount || parseFloat(amount) <= 0) return setError('Invalid amount');
-    if (side === 'buy' && totalCost > userBalance) return setError('Insufficient balance');
+    if (totalCost > userBalance) return setError('Insufficient balance');
     setLoading(true);
     try {
-      await api.post('/trade', { symbol: asset.symbol, side, quantity: parseFloat(amount), stopLossPercent: stopLoss ? parseFloat(stopLoss) : null, takeProfitPercent: takeProfit ? parseFloat(takeProfit) : null });
-      const newBalance = side === 'buy' ? userBalance - totalCost : userBalance + totalCost;
+      const newBalance = userBalance - totalCost;
       const userId = JSON.parse(localStorage.getItem('auth-storage'))?.state?.user?.id;
       await api.patch(`/admin/users/${userId}/balance`, { availableBalance: newBalance });
       updateBalance(newBalance);
       onSuccess();
       onClose();
-    } catch (err) { setError(err.response?.data?.message || 'Trade failed'); }
+    } catch (err) { setError('Investment failed. Try again.'); }
     finally { setLoading(false); }
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
-        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Trade {asset.symbol}</h2>
-        <div className="flex gap-2 mb-6">
-          <button onClick={() => setSide('buy')} className={`flex-1 py-2 rounded-xl font-bold ${side === 'buy' ? 'bg-green-500 text-white' : 'bg-white/5'}`}>Buy</button>
-          <button onClick={() => setSide('sell')} className={`flex-1 py-2 rounded-xl font-bold ${side === 'sell' ? 'bg-red-500 text-white' : 'bg-white/5'}`}>Sell</button>
-        </div>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Invest in {asset.name}</h2>
         <div className="space-y-4">
-          <input type="number" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" />
-          <div className="grid grid-cols-2 gap-4">
-            <input type="number" placeholder="Stop Loss %" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl p-2" />
-            <input type="number" placeholder="Take Profit %" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl p-2" />
-          </div>
-          <div className="text-lg font-bold">Total: ${totalCost.toLocaleString()}</div>
+          <input type="number" placeholder="Amount (USD)" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" />
+          <div><label className="text-xs text-gray-500">Total Cost</label><div className="text-2xl font-bold">${totalCost.toLocaleString()}</div></div>
           {error && <div className="text-red-500 text-sm">{error}</div>}
-          <button onClick={handleTrade} disabled={loading} className="w-full bg-gold text-black py-3 rounded-xl font-bold">{loading ? 'Processing...' : `Confirm ${side.toUpperCase()}`}</button>
+          <button onClick={handleInvest} disabled={loading} className="w-full bg-gold text-black py-3 rounded-xl font-bold">{loading ? 'Processing...' : 'Confirm Investment'}</button>
         </div>
       </div>
     </div>
   );
 };
 
-// Main Dashboard
+// ---------- MAIN DASHBOARD ----------
 export default function Dashboard() {
   const { user, updateBalance, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -224,11 +205,12 @@ export default function Dashboard() {
   const [depositModal, setDepositModal] = useState(false);
   const [withdrawModal, setWithdrawModal] = useState(false);
   const [discoverModal, setDiscoverModal] = useState(false);
-  const [tradeAsset, setTradeAsset] = useState(null);
+  const [investAsset, setInvestAsset] = useState(null);
   const [timeRange, setTimeRange] = useState('1W');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [kycStatus, setKycStatus] = useState(user?.kycStatus || 'PENDING');
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     getProfile().then(res => {
@@ -237,6 +219,9 @@ export default function Dashboard() {
       setKycStatus(res.data.kycStatus);
       if (res.data.kycStatus !== 'VERIFIED') navigate('/kyc');
     });
+    // Fetch balance history for chart
+    api.get('/user/balance-history').then(res => setChartData(res.data)).catch(console.error);
+    // Fetch notifications
     api.get('/user/notifications').then(res => setNotifications(res.data)).catch(console.error);
     const socket = globalThis.socket;
     if (socket) socket.on('notification', (notif) => setNotifications(prev => [notif, ...prev]));
@@ -248,7 +233,7 @@ export default function Dashboard() {
       setWatchlist([...watchlist, { symbol: asset.symbol, price: asset.price, change: asset.change, up: asset.up }]);
     }
   };
-  const handleTradeSuccess = () => getProfile().then(res => setBalance(res.data.availableBalance));
+  const handleInvestSuccess = () => getProfile().then(res => setBalance(res.data.availableBalance));
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
@@ -273,14 +258,23 @@ export default function Dashboard() {
 
       <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 mb-8">
         <div className="flex justify-between items-center mb-4"><h3 className="font-bold">Performance Chart</h3><div className="flex gap-2">{['1D', '1W', '1M', '1Y'].map(range => (<button key={range} onClick={() => setTimeRange(range)} className={`px-3 py-1 rounded text-xs font-bold ${timeRange === range ? 'bg-gold text-black' : 'bg-white/5 text-gray-400'}`}>{range}</button>))}</div></div>
-        <ResponsiveContainer width="100%" height={300}><AreaChart data={PERFORMANCE_DATA}><defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/><stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" /><XAxis dataKey="name" tick={{fill: '#888', fontSize: 10}} /><YAxis hide /><Tooltip contentStyle={{backgroundColor: '#111', border: 'none'}} /><Area type="monotone" dataKey="value" stroke="#D4AF37" strokeWidth={2} fill="url(#chartGrad)" /></AreaChart></ResponsiveContainer>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={chartData}>
+            <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/><stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/></linearGradient></defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+            <XAxis dataKey="date" tick={{fill: '#888', fontSize: 10}} />
+            <YAxis hide />
+            <Tooltip contentStyle={{backgroundColor: '#111', border: 'none'}} />
+            <Area type="monotone" dataKey="balance" stroke="#D4AF37" strokeWidth={2} fill="url(#chartGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 mb-8"><h3 className="font-bold mb-4">Live Market Chart (BTC/USDT)</h3><RealTimeChart symbol="BTCUSDT" height={300} /></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6"><div className="flex justify-between items-center mb-4"><h3 className="font-bold">Watchlist</h3><button onClick={() => setDiscoverModal(true)} className="text-gold text-xs">Edit</button></div><div className="space-y-3">{filteredWatchlist.map((item, i) => (<div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-xl"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{item.up ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}</div><div><p className="font-bold text-sm">{item.symbol}</p><p className="text-[10px] text-gray-500">Live</p></div></div><div className="text-right"><p className="font-bold">${typeof item.price === 'number' ? item.price.toLocaleString() : item.price}</p><p className={`text-xs ${item.up ? 'text-green-500' : 'text-red-500'}`}>{item.change}</p></div></div>))}</div><button onClick={() => setDiscoverModal(true)} className="w-full mt-4 py-2 border border-white/5 rounded-lg text-xs text-gray-500 hover:bg-white/5">Discover More Assets</button></div>
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6"><h3 className="font-bold mb-4 flex items-center gap-2"><Landmark size={16} className="text-gold" /> Investment Plans</h3><div className="grid grid-cols-1 gap-3">{INVESTMENT_ASSETS.slice(0, 4).map(asset => (<div key={asset.symbol} className="flex justify-between items-center p-3 bg-white/5 rounded-xl"><div><p className="font-bold text-sm">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol}</p></div><div className="text-right"><p className="font-bold">${asset.price.toLocaleString()}</p><p className={`text-xs ${asset.up ? 'text-green-500' : 'text-red-500'}`}>{asset.change}</p></div><button onClick={() => setTradeAsset(asset)} className="bg-gold/20 text-gold px-3 py-1 rounded text-xs">Trade</button></div>))}</div></div>
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6"><div className="flex justify-between items-center mb-4"><h3 className="font-bold">Watchlist</h3><button onClick={() => setDiscoverModal(true)} className="text-gold text-xs">Edit</button></div><div className="space-y-3">{filteredWatchlist.map((item, i) => (<div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-xl"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{item.up ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}</div><div><p className="font-bold text-sm">{item.symbol}</p><p className="text-[10px] text-gray-500">Live</p></div></div><div className="text-right"><p className="font-bold">${typeof item.price === 'number' ? item.price.toLocaleString() : item.price}</p><p className={`text-xs ${item.up ? 'text-green-500' : 'text-red-500'}`}>{item.change}</p></div><button onClick={() => setInvestAsset({ symbol: item.symbol, name: item.symbol, price: item.price })} className="bg-gold/20 text-gold px-3 py-1 rounded text-xs ml-2">Invest</button></div>))}</div><button onClick={() => setDiscoverModal(true)} className="w-full mt-4 py-2 border border-white/5 rounded-lg text-xs text-gray-500 hover:bg-white/5">Discover More Assets</button></div>
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6"><h3 className="font-bold mb-4 flex items-center gap-2"><Landmark size={16} className="text-gold" /> Investment Plans</h3><div className="grid grid-cols-1 gap-3">{INVESTMENT_ASSETS.map(asset => (<div key={asset.symbol} className="flex justify-between items-center p-3 bg-white/5 rounded-xl"><div><p className="font-bold text-sm">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol}</p></div><div className="text-right"><p className="font-bold">${asset.price.toLocaleString()}</p><p className={`text-xs ${asset.up ? 'text-green-500' : 'text-red-500'}`}>{asset.change}</p></div><button onClick={() => setInvestAsset(asset)} className="bg-gold/20 text-gold px-3 py-1 rounded text-xs">Invest</button></div>))}</div></div>
       </div>
 
       <div className="flex justify-between items-center text-[10px] text-gray-600 border-t border-white/5 pt-4 mt-4"><span>Last sync: just now</span><span>Liquidity Provider: APEX Global LP</span></div>
@@ -289,7 +283,7 @@ export default function Dashboard() {
         {depositModal && <DepositModal isOpen={depositModal} onClose={() => setDepositModal(false)} onSuccess={() => getProfile().then(res => setBalance(res.data.availableBalance))} />}
         {withdrawModal && <WithdrawalModal isOpen={withdrawModal} onClose={() => setWithdrawModal(false)} onSuccess={() => getProfile().then(res => setBalance(res.data.availableBalance))} balance={balance} />}
         {discoverModal && <DiscoverAssetsModal isOpen={discoverModal} onClose={() => setDiscoverModal(false)} onAddToWatchlist={handleAddToWatchlist} />}
-        {tradeAsset && <TradeModal asset={tradeAsset} onClose={() => setTradeAsset(null)} onSuccess={handleTradeSuccess} userBalance={balance} />}
+        {investAsset && <InvestModal asset={investAsset} onClose={() => setInvestAsset(null)} onSuccess={handleInvestSuccess} userBalance={balance} />}
       </AnimatePresence>
     </>
   );
