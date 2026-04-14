@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, ShieldCheck, Zap, Globe, ArrowRight, ChevronRight,
-  BarChart3, Lock, Star
+  BarChart3, Lock, Star, Mail, Send, Facebook, Twitter, Linkedin, Instagram
 } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import useUIStore from '../store/useUIStore';
+import api from '../api/axios';
 
 // Hero Section with full‑screen background image
 const Hero = () => {
   const setAuthModalOpen = useUIStore(state => state.setAuthModalOpen);
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-32 overflow-hidden">
-      {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
           src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=2000" 
@@ -21,7 +21,6 @@ const Hero = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90" />
       </div>
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
           <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-[#D4AF37] uppercase bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full backdrop-blur-sm">
@@ -50,7 +49,7 @@ const Hero = () => {
   );
 };
 
-// TradingView Ticker (unchanged)
+// TradingView Ticker
 const TradingViewTicker = () => {
   useEffect(() => {
     const script = document.createElement('script');
@@ -75,7 +74,7 @@ const TradingViewTicker = () => {
   return <div id="tv-ticker" className="w-full overflow-hidden bg-black/40 backdrop-blur-sm border-y border-white/5 py-1"></div>;
 };
 
-// Features Section (unchanged)
+// Features Section
 const Features = () => {
   const features = [
     { icon: ShieldCheck, title: "Secure Custody", desc: "Multi-sig cold storage for all digital assets." },
@@ -101,9 +100,18 @@ const Features = () => {
   );
 };
 
-// Client Reviews Section (unchanged)
+// Client Reviews Section (with fallback)
 const Reviews = ({ reviews }) => {
-  if (!reviews || reviews.length === 0) return null;
+  if (!reviews || reviews.length === 0) {
+    return (
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">What Our Clients Say</h2>
+          <p className="text-gray-400">Be the first to leave a review!</p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="py-24">
       <div className="max-w-7xl mx-auto px-4">
@@ -124,27 +132,57 @@ const Reviews = ({ reviews }) => {
   );
 };
 
-// Footer (unchanged)
-const Footer = () => (
-  <footer className="bg-black border-t border-white/5 pt-20 pb-10">
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-2"><TrendingUp className="text-gold w-6 h-6" /><span className="text-xl font-bold">APEX ONE</span></div>
-        <p className="text-xs text-gray-600">© 2025 APEX ONE. All rights reserved.</p>
-        <div className="flex gap-4"><Lock className="w-4 h-4 text-gray-500"/><ShieldCheck className="w-4 h-4 text-gray-500"/></div>
+// Newsletter Footer Component
+const Footer = () => {
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/newsletter/subscribe', { email });
+      setMessage('Subscribed successfully!');
+      setEmail('');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Subscription failed');
+    }
+  };
+  return (
+    <footer className="bg-black border-t border-white/5 pt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+          <div>
+            <div className="flex items-center gap-2 mb-6"><TrendingUp className="text-gold w-8 h-8" /><span className="text-2xl font-bold">APEX ONE</span></div>
+            <p className="text-gray-500 text-sm">Redefining digital asset management with precision and security.</p>
+          </div>
+          <div><h4 className="text-white font-bold mb-6">Quick Links</h4><ul className="space-y-3"><li><a href="/markets" className="text-gray-500 hover:text-gold transition">Markets</a></li><li><a href="/about" className="text-gray-500 hover:text-gold transition">About Us</a></li><li><a href="/contact" className="text-gray-500 hover:text-gold transition">Contact</a></li><li><a href="/dashboard" className="text-gray-500 hover:text-gold transition">Dashboard</a></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-3"><li><a href="#" className="text-gray-500 hover:text-gold transition">Terms of Service</a></li><li><a href="#" className="text-gray-500 hover:text-gold transition">Privacy Policy</a></li><li><a href="#" className="text-gray-500 hover:text-gold transition">Cookie Policy</a></li></ul></div>
+          <div><h4 className="text-white font-bold mb-6">Newsletter</h4><form onSubmit={handleSubscribe} className="flex gap-2"><input type="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-gold" /><button type="submit" className="bg-gold text-black p-2 rounded-lg"><Send size={18} /></button></form>{message && <p className="text-xs text-gold mt-2">{message}</p>}</div>
+        </div>
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
+          <p>© 2025 APEX ONE. All rights reserved.</p>
+          <div className="flex gap-4"><Lock className="w-4 h-4"/><ShieldCheck className="w-4 h-4"/></div>
+        </div>
       </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 // Main Landing Page Component
 export default function LandingPage() {
   const [reviews, setReviews] = useState([]);
   useEffect(() => {
-    fetch('/api/reviews')
-      .then(res => res.json())
-      .then(data => setReviews(data))
-      .catch(err => console.error('Failed to load reviews:', err));
+    const fetchReviews = async () => {
+      try {
+        const res = await api.get('/reviews');
+        setReviews(res.data);
+      } catch (err) {
+        console.error('Failed to load reviews:', err);
+        // Fallback to empty array (no reviews shown)
+        setReviews([]);
+      }
+    };
+    fetchReviews();
   }, []);
 
   return (
