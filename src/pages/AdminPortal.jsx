@@ -22,38 +22,22 @@ export default function AdminPortal() {
   const { user } = useAuthStore();
   const setView = useUIStore(state => state.setView);
   const [activeTab, setActiveTab] = useState('users');
-  
-  // Users
   const [users, setUsers] = useState([]);
   const [editingBalance, setEditingBalance] = useState(null);
   const [newBalance, setNewBalance] = useState('');
   const [createUserForm, setCreateUserForm] = useState({ fullName: '', email: '', password: '', role: 'USER', availableBalance: 0 });
-  
-  // Transactions
   const [transactions, setTransactions] = useState([]);
-  
-  // Simulation
   const [simUser, setSimUser] = useState(null);
   const [simRate, setSimRate] = useState(0.05);
   const [simActive, setSimActive] = useState(false);
   const [simAllActive, setSimAllActive] = useState(false);
   const [globalGrowthRate, setGlobalGrowthRate] = useState(0.05);
   const [simulationIntervals, setSimulationIntervals] = useState({});
-  
-  // KYC
   const [kycUsers, setKycUsers] = useState([]);
   const [selectedKycUser, setSelectedKycUser] = useState(null);
-  
-  // Reviews
   const [reviews, setReviews] = useState([]);
-  
-  // Messages
   const [messages, setMessages] = useState([]);
-  
-  // Newsletter
   const [subscribers, setSubscribers] = useState([]);
-  
-  // Errors
   const [createUserError, setCreateUserError] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
@@ -93,7 +77,6 @@ export default function AdminPortal() {
     fetchReviews();
   }, []);
 
-  // User management
   const handleUpdateBalance = async (userId) => {
     await api.patch(`/admin/users/${userId}/balance`, { availableBalance: parseFloat(newBalance) });
     fetchUsers();
@@ -124,14 +107,12 @@ export default function AdminPortal() {
     }
   };
 
-  // Transaction approval
   const handleTransactionAction = async (id, status) => {
     await api.patch(`/admin/transactions/${id}`, { status });
     fetchTransactions();
     fetchUsers();
   };
 
-  // Simulation – Individual
   const startIndividualSimulation = async () => {
     if (!simUser) return alert('Select a user');
     await api.post('/admin/simulation/start', { userId: simUser, growthRate: simRate });
@@ -145,10 +126,8 @@ export default function AdminPortal() {
     alert('Individual simulation stopped');
   };
 
-  // Simulation – Global
   const startGlobalSimulation = async () => {
     setSimAllActive(true);
-    // Clear existing intervals
     Object.values(simulationIntervals).forEach(interval => clearInterval(interval));
     const intervals = {};
     for (const u of users) {
@@ -170,7 +149,6 @@ export default function AdminPortal() {
     alert('Global simulation stopped');
   };
 
-  // KYC actions
   const handleKycAction = async (userId, status) => {
     await api.patch(`/admin/kyc/${userId}`, { status });
     fetchKycPending();
@@ -178,7 +156,6 @@ export default function AdminPortal() {
     setSelectedKycUser(null);
   };
 
-  // Review actions
   const handleReviewAction = async (id, isActive) => {
     await api.patch(`/admin/reviews/${id}`, { isActive });
     fetchReviews();
@@ -190,7 +167,6 @@ export default function AdminPortal() {
     }
   };
 
-  // Message actions
   const markMessageRead = async (id) => {
     await api.patch(`/admin/contact-messages/${id}/read`);
     fetchMessages();
@@ -201,8 +177,6 @@ export default function AdminPortal() {
       fetchMessages();
     }
   };
-
-  // Newsletter actions
   const deleteSubscriber = async (id) => {
     if (window.confirm('Remove this subscriber?')) {
       await api.delete(`/admin/newsletter/${id}`);
@@ -267,23 +241,6 @@ export default function AdminPortal() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {/* CREATE USER FORM */}
-        {activeTab === 'create' && (
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><UserPlus size={20} /> Create New User</h3>
-            {createUserError && <div className="mb-4 p-2 bg-red-500/20 text-red-400 rounded">{createUserError}</div>}
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <input type="text" placeholder="Full Name" value={createUserForm.fullName} onChange={e => setCreateUserForm({...createUserForm, fullName: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
-              <input type="email" placeholder="Email" value={createUserForm.email} onChange={e => setCreateUserForm({...createUserForm, email: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
-              <input type="password" placeholder="Password" value={createUserForm.password} onChange={e => setCreateUserForm({...createUserForm, password: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
-              <select value={createUserForm.role} onChange={e => setCreateUserForm({...createUserForm, role: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2"><option value="USER">User</option><option value="ADMIN">Admin</option></select>
-              <input type="number" placeholder="Initial Balance" value={createUserForm.availableBalance} onChange={e => setCreateUserForm({...createUserForm, availableBalance: parseFloat(e.target.value)})} className="w-full bg-black border border-white/10 rounded-lg p-2" />
-              <button type="submit" className="bg-gold text-black px-4 py-2 rounded-lg">Create User</button>
-              <button type="button" onClick={() => setActiveTab('users')} className="ml-2 bg-white/5 px-4 py-2 rounded-lg">Cancel</button>
-            </form>
           </div>
         )}
 
@@ -446,6 +403,23 @@ export default function AdminPortal() {
               </table>
             </div>
             {subscribers.length === 0 && <p className="text-gray-500">No subscribers yet.</p>}
+          </div>
+        )}
+
+        {/* CREATE USER FORM */}
+        {activeTab === 'create' && (
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><UserPlus size={20} /> Create New User</h3>
+            {createUserError && <div className="mb-4 p-2 bg-red-500/20 text-red-400 rounded">{createUserError}</div>}
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <input type="text" placeholder="Full Name" value={createUserForm.fullName} onChange={e => setCreateUserForm({...createUserForm, fullName: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
+              <input type="email" placeholder="Email" value={createUserForm.email} onChange={e => setCreateUserForm({...createUserForm, email: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
+              <input type="password" placeholder="Password" value={createUserForm.password} onChange={e => setCreateUserForm({...createUserForm, password: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2" required />
+              <select value={createUserForm.role} onChange={e => setCreateUserForm({...createUserForm, role: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg p-2"><option value="USER">User</option><option value="ADMIN">Admin</option></select>
+              <input type="number" placeholder="Initial Balance" value={createUserForm.availableBalance} onChange={e => setCreateUserForm({...createUserForm, availableBalance: parseFloat(e.target.value)})} className="w-full bg-black border border-white/10 rounded-lg p-2" />
+              <button type="submit" className="bg-gold text-black px-4 py-2 rounded-lg">Create User</button>
+              <button type="button" onClick={() => setActiveTab('users')} className="ml-2 bg-white/5 px-4 py-2 rounded-lg">Cancel</button>
+            </form>
           </div>
         )}
       </div>
