@@ -13,6 +13,7 @@ import { getProfile } from '../api/auth';
 import api from '../api/axios';
 import RealTimeChart from '../components/RealTimeChart';
 
+// ========== CONSTANTS ==========
 const INVESTMENT_ASSETS = [
   { symbol: 'TSLA', name: 'Tesla Inc', price: 175.42, change: '+2.3%', up: true },
   { symbol: 'USOIL', name: 'WTI Crude Oil', price: 78.50, change: '-1.2%', up: false },
@@ -28,13 +29,136 @@ const DEFAULT_WATCHLIST = [
   { symbol: 'TSLA', price: 175.42, change: '+2.3%', up: true },
 ];
 
-// ---------- MODALS (Deposit, Withdraw, Discover) are the same as before ----------
-// (omitted for brevity – they are unchanged)
-const DepositModal = ({ isOpen, onClose, onSuccess }) => { /* same as before */ return null; };
-const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => { /* same */ return null; };
-const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => { /* same */ return null; };
+// ========== DEPOSIT MODAL ==========
+const DepositModal = ({ isOpen, onClose, onSuccess }) => {
+  const [step, setStep] = useState('method');
+  const [method, setMethod] = useState('');
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-// ---------- INVEST MODAL (FIXED) ----------
+  const paymentMethods = [
+    { id: 'btc', name: 'Bitcoin', icon: Bitcoin, details: 'BTC Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' },
+    { id: 'cashapp', name: 'Cash App', icon: CreditCard, details: 'Cash App Tag: $APEXONE' },
+    { id: 'bank', name: 'Bank Transfer', icon: Send, details: 'Bank: Chase, Account: 123456789, Routing: 021000021' },
+    { id: 'support', name: 'Contact Support', icon: AlertCircle, details: 'Please contact support@apexone.com' },
+  ];
+
+  const selectedMethod = paymentMethods.find(m => m.id === method);
+  const handleMethodSelect = (m) => { setMethod(m); setStep('details'); };
+  const handleProceed = () => setStep('confirm');
+  const handleConfirm = async () => {
+    if (!amount || parseFloat(amount) <= 0) { setError('Enter amount'); return; }
+    setLoading(true);
+    try {
+      await api.post('/deposit/request', { amount: parseFloat(amount), cryptoType: method.toUpperCase(), cryptoTxId: 'manual' });
+      setSuccess('Deposit request submitted. Admin will review.');
+      setTimeout(() => { onSuccess(); onClose(); setStep('method'); setAmount(''); setMethod(''); }, 2000);
+    } catch (err) { setError(err.response?.data?.message || 'Request failed'); }
+    finally { setLoading(false); }
+  };
+  const reset = () => { setStep('method'); setMethod(''); setAmount(''); setError(''); setSuccess(''); };
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
+        <button onClick={() => { reset(); onClose(); }} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Deposit Funds</h2>
+        {step === 'method' && (
+          <div className="space-y-3">
+            {paymentMethods.map(m => (
+              <button key={m.id} onClick={() => handleMethodSelect(m.id)} className="w-full flex items-center gap-3 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition">
+                <m.icon size={24} className="text-gold" /><span className="font-medium">{m.name}</span><ChevronRight size={18} className="ml-auto text-gray-500" />
+              </button>
+            ))}
+          </div>
+        )}
+        {step === 'details' && selectedMethod && (
+          <div className="space-y-4">
+            <div className="p-4 bg-white/5 rounded-xl"><p className="text-sm text-gray-400 mb-2">Send funds to:</p><p className="font-mono text-sm break-all">{selectedMethod.details}</p></div>
+            <button onClick={handleProceed} className="w-full bg-gold text-black py-3 rounded-xl font-bold">I have sent the payment</button>
+            <button onClick={() => setStep('method')} className="w-full bg-white/5 py-2 rounded-xl text-sm">Back</button>
+          </div>
+        )}
+        {step === 'confirm' && (
+          <div className="space-y-4">
+            <input type="number" placeholder="Amount (USD)" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" />
+            {error && <div className="text-red-500 text-sm">{error}</div>}
+            {success && <div className="text-green-500 text-sm">{success}</div>}
+            <button onClick={handleConfirm} disabled={loading} className="w-full bg-gold text-black py-3 rounded-xl font-bold">{loading ? 'Submitting...' : 'Confirm Deposit'}</button>
+            <button onClick={() => setStep('details')} className="w-full bg-white/5 py-2 rounded-xl text-sm">Back</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ========== WITHDRAWAL MODAL ==========
+const WithdrawalModal = ({ isOpen, onClose, onSuccess, balance }) => {
+  const [amount, setAmount] = useState('');
+  const [destinationAddr, setDestinationAddr] = useState('');
+  const [cryptoType, setCryptoType] = useState('BTC');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!amount || parseFloat(amount) <= 0) return setError('Invalid amount');
+    if (parseFloat(amount) > balance) return setError('Insufficient balance');
+    setLoading(true);
+    try {
+      await api.post('/withdrawals', { amount: parseFloat(amount), destinationAddr, cryptoType });
+      setSuccess('Withdrawal request submitted. Admin will review.');
+      setTimeout(() => { onSuccess(); onClose(); }, 2000);
+    } catch (err) { setError(err.response?.data?.message || 'Request failed'); }
+    finally { setLoading(false); }
+  };
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Withdraw Funds</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="number" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" required />
+          <select value={cryptoType} onChange={e => setCryptoType(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3"><option>BTC</option><option>ETH</option><option>USDT</option></select>
+          <input type="text" placeholder="Destination Address" value={destinationAddr} onChange={e => setDestinationAddr(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3" required />
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          {success && <div className="text-green-500 text-sm">{success}</div>}
+          <button type="submit" disabled={loading} className="w-full bg-gold text-black py-3 rounded-xl font-bold">{loading ? 'Submitting...' : 'Request Withdrawal'}</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ========== DISCOVER ASSETS MODAL ==========
+const DiscoverAssetsModal = ({ isOpen, onClose, onAddToWatchlist }) => {
+  const [search, setSearch] = useState('');
+  const filteredAssets = INVESTMENT_ASSETS.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.symbol.toLowerCase().includes(search.toLowerCase()));
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-[#0A0A0A] border border-[#D4AF37]/20 rounded-2xl w-full max-w-2xl p-6 relative max-h-[80vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20} /></button>
+        <h2 className="text-2xl font-bold text-[#D4AF37] mb-4">Discover More Assets</h2>
+        <input type="text" placeholder="Search stocks..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredAssets.map(asset => (
+            <div key={asset.symbol} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+              <div><p className="font-bold">{asset.name} ({asset.symbol})</p><p className="text-xs text-gray-500">${asset.price.toLocaleString()}</p></div>
+              <button onClick={() => { onAddToWatchlist(asset); onClose(); }} className="px-3 py-1 bg-gold text-black rounded-lg text-xs font-bold">Add</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== INVEST MODAL ==========
 const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +197,7 @@ const InvestModal = ({ asset, onClose, onSuccess, userBalance }) => {
   );
 };
 
-// ---------- MAIN DASHBOARD ----------
+// ========== MAIN DASHBOARD ==========
 export default function Dashboard() {
   const { user, updateBalance, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -158,7 +282,6 @@ export default function Dashboard() {
 
       <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 mb-8"><h3 className="font-bold mb-4">Live Market Chart (BTC/USDT)</h3><RealTimeChart symbol="BTCUSDT" height={300} /></div>
 
-      {/* Active Investments Section */}
       {activeInvestments.length > 0 && (
         <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 mb-8">
           <h3 className="font-bold mb-4 flex items-center gap-2"><Landmark size={16} className="text-gold" /> Active Investments</h3>
@@ -166,10 +289,7 @@ export default function Dashboard() {
             {activeInvestments.map(inv => (
               <div key={inv._id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
                 <div><p className="font-bold text-sm">{inv.symbol}</p><p className="text-xs text-gray-500">Amount: ${inv.amount.toLocaleString()}</p></div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">Vesting: {new Date(inv.vestingDate).toLocaleDateString()}</p>
-                  <p className="text-xs text-green-500">Status: {inv.status}</p>
-                </div>
+                <div className="text-right"><p className="text-xs text-gray-400">Vesting: {new Date(inv.vestingDate).toLocaleDateString()}</p><p className="text-xs text-green-500">Status: {inv.status}</p></div>
               </div>
             ))}
           </div>
